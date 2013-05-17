@@ -6,6 +6,9 @@ import (
 
 type gamlline string
 
+func (g gamlline) empty()bool {
+  return string(g) == ""
+}
 func (g * gamlline) fillCurrNode(p* Parser)(err error){
   line := (string)(*g)
   node := p.currentNode

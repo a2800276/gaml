@@ -60,8 +60,10 @@ func (p * Parser) handleLine()(err error) {
     return
   }
   p.stripLine()
-  p.setCurrentNode()
-  p.strippedLine.fillCurrNode(p)
+  if (!p.strippedLine.empty()) {
+    p.setCurrentNode()
+    p.strippedLine.fillCurrNode(p)
+  }
   return
 }
 
