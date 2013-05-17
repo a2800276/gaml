@@ -47,7 +47,7 @@ func (p * Parser) Parse()(err error) {
     if err = p.handleLine(); err != nil {
       return
     }
-    fmt.Printf("(%d): %s\n", p.lineNo, p.line)
+    //fmt.Printf("(%d): %s\n", p.lineNo, p.line)
   }
   if err = p.scanner.Err(); err != nil {
     return
