@@ -33,22 +33,19 @@ func (n * node) AddAttribute (name string, value string) {
 func (n * node) Render(writer io.Writer) {
   n.render(writer, 0)
 }
+
 func (n * node) render(w io.Writer, indent int) {
-  if n.name != "" {
+  if n.name == n.text && n.text == "!!!" {
+    n.renderDocType(w)
+  } else if n.name != "" {
     n.renderTag(w, indent)
   } else {
     n.renderText(w, indent)
   }
 }
 
-func (n * node) render_debug(indent int) {
-  for i:=0;i!=indent;i++ {
-    print("-")
-  }
-  println("+")
-  for _,child := range(n.children) {
-    child.render_debug(indent + 1)
-  }
+func (n * node) renderDocType(w io.Writer) {
+  io.WriteString(w, "<!DOCTYPE html>\n")
 }
 func (n * node) renderTag(w io.Writer, indent int) {
   indentfunc := func () {
@@ -87,4 +84,14 @@ func (n * node) renderText(w io.Writer, indent int) {
   io.WriteString(w, n.text)
   io.WriteString(w, "\n")
 
+}
+// internal use only!
+func (n * node) render_debug(indent int) {
+  for i:=0;i!=indent;i++ {
+    print("-")
+  }
+  println("+")
+  for _,child := range(n.children) {
+    child.render_debug(indent + 1)
+  }
 }

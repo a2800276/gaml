@@ -3,6 +3,7 @@ package gaml
 import (
   "bytes"
   "fmt"
+  "strings"
 )
 
 type gamlline string
@@ -48,6 +49,13 @@ func (g * gamlline) fillCurrNode(p* Parser)(err error){
 func (g gamlline) sm_curr_node(p* Parser)(err error) {
   line := string(g)
   node := p.currentNode
+
+  if 0 == strings.Index(line, "!!!") {
+    node.text = "!!!" // not nice!
+    node.name = "!!!" // use text == name == "!!!" to signal doctype.
+  }
+
+
   var value bytes.Buffer
 
   fillInName := func() {
