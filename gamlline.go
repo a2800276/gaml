@@ -18,6 +18,10 @@ const (
   TEXT_OR_ATTRIBUTES
   TEXT_NEW // need to differentiate between a "pure" line of text and text that comes after a tag.
   ATTRIBUTES
+  ATTRIBUTES_NAME
+  ATTRIBUTES_AFTER_NAME
+  ATTRIBUTES_VALUES
+  ERR
 )
 
 func (g gamlline) empty()bool {
@@ -73,6 +77,7 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
 
 
   state := INITIAL
+  var name string // remember name of name = attribute pairs
 
   for _, r := range(line) {
     switch state {
@@ -96,8 +101,16 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
         textNew() 
         value.WriteRune(r)
         state = TEXT
-     // case ATTRIBUTES:
-     //   state = attributes(r, &value)
+      case ATTRIBUTES:
+        state = attributes(r, &value)
+      case ATTRIBUTES_NAME:
+        state, name = attributes_name(r, &value)
+      case ATTRIBUTES_AFTER_NAME:
+        if state, err = attributes_after_name(r, &value); err != nil {
+          return err
+        }
+      case ATTRIBUTES_VALUES:
+        state = attributes_values(r, &value, func(){ node.AddAttribute(name, buf.String())} )
     }
   }
 
@@ -120,9 +133,59 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
     case TEXT_OR_ATTRIBUTES, TEXT_NEW:
       textNew()
       node.text = value.String()
+    case ATTRIBUTES, ATTRIBUTES_NAME, ATTRIBUTES_AFTER_NAME, ATTRIBUTES_VALUES:
+      return p.Err("implausible state!")
+
 
   }
   return
+}
+
+func attributes_values (r rune, buf * bytes.Buffer, fillInValue func()) gstate {
+  switch r {
+    case '"', '\'':
+      fillInValue()
+      buf.Reset()
+      return ATTRIBUTES
+    default:
+      buf.WriteRune(r)
+      return ATTRIBUTES_VALUES
+  }
+}
+
+func attributes_after_name (r rune, buf * bytes.Buffer) gstate, error {
+  // this one is stupid.
+  switch r {
+    case ' ', '=':                             // <-- allows a ==    == = 'bla'
+      return ATTRIBUTES_AFTER_NAME, ""
+    case '\'', '"':                            // <-- allows a = 'Bla"
+      return ATTRIBUTES_VALUES, ""
+    default:
+      return ERR, fmt.Errorf("unquoted attribute values")
+  }
+}
+
+func attributes_name (r rune, buf * bytes.Buffer) gstate, string {
+  switch r {
+    case ' ':
+      name = buf.String() 
+      buf.Reset()
+      return ATTRIBUTES_AFTER_NAME, name
+    default:
+      buf.WriteRune(r)
+      return ATTRIBUTES_NAME, ""
+  }
+}
+func attributes(r rune, buf * bytes.Buffer) gstate {
+  switch r {
+    case ' ':
+      return ATTRIBUTES
+    case ')':
+      return TEXT
+    default:
+      buf.WriteRune(r)
+      return ATTRIBUTES_NAME
+  }
 }
 
 func textOrAttribute(r rune, buf * bytes.Buffer) gstate {
@@ -133,7 +196,7 @@ func textOrAttribute(r rune, buf * bytes.Buffer) gstate {
     case '(':
       buf.Reset()
       return ATTRIBUTES
-    default:
+    default:  // default in all of these state functions is not correct, catch all sort of unicode crap people may throw at us ...
       buf.WriteRune(r)
       return TEXT_NEW
   }
