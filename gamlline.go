@@ -50,8 +50,21 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
     value.Reset()
   }
 
-  addClass := func() {}
-  addId := func() {}
+  addClass := func() {
+    if node.name == "" {
+      node.name = "div"
+    }
+    node.AddAttribute("class", value.String())
+    value.Reset()
+  }
+
+  addId := func() {
+    if node.name == "" {
+      node.name = "div"
+    }
+    node.AddAttribute("id", value.String())
+    value.Reset()
+  }
 
   textNew := func () {
     _node := newNode(node)
@@ -64,13 +77,13 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
   for _, r := range(line) {
     switch state {
       case INITIAL:
-        state = initial(r)
+        state = initial(r, &value)
       case TAG_NAME:
-        state = tag(r, &value, fillInName)
+        state = tag(r, &value, fillInName, TAG_NAME)
       case CLASS:
-        state = tag(r, &value, addClass)
+        state = tag(r, &value, addClass, CLASS)
       case ID:
-        state = tag(r, &value, addId)
+        state = tag(r, &value, addId, ID)
       case INCLUDE:
         // ignore for now ... ? 
         node.text = "<!-- include not handled -->"
@@ -126,7 +139,7 @@ func textOrAttribute(r rune, buf * bytes.Buffer) gstate {
   }
 }
 
-func tag(r rune, buf * bytes.Buffer, fillInValue func () )gstate {
+func tag(r rune, buf * bytes.Buffer, fillInValue func (), state gstate )gstate {
     switch r {
     case '.':
       fillInValue()
@@ -143,11 +156,11 @@ func tag(r rune, buf * bytes.Buffer, fillInValue func () )gstate {
       return ATTRIBUTES
     default:
       buf.WriteRune(r)
-      return TAG_NAME
+      return state
   }
 }
 
-func initial(r rune)gstate {
+func initial(r rune, buf * bytes.Buffer)gstate {
   switch r {
     case '%':
       return TAG_NAME
@@ -158,6 +171,7 @@ func initial(r rune)gstate {
     case '>':
       return INCLUDE
     default:
+      buf.WriteRune(r)
       return TEXT
   }
 }
