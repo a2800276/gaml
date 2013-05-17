@@ -1,5 +1,20 @@
 package gaml
 
+// not part of the public interface!
+// end users should not have to deal with this code.
+
+
+// basically, the gaml library works by: using the GO scanner to
+// chop up the provided input into lines, the "parser" handles the indention,
+// strips whitespace and comments, and the resulting stripped line with no comments 
+// is of type `gamlline`. It is a string that is capable of parsing itself into a 
+// `node`
+// The logic to transform the string into a node is defined in a big, nasty, brutishly
+// amateur statemachine which makes up the bulk of this file.
+// the `gamlline` type is not public, so it can't be used outside this library (and would be 
+// fairly useless) Capitalized mathods indicate that they are meant to be used
+// outside of this file (within the library), lower_case methods are meant as local helper functions.
+
 import (
   "bytes"
   "fmt"
@@ -18,7 +33,7 @@ const (
   INCLUDE
   TEXT
   TEXT_OR_ATTRIBUTES
-  TEXT_NEW // need to differentiate between a "pure" line of text and text that comes after a tag.
+  TEXT_NEW // need to differentiate between a "pure" line of text and text that comes after a tag. (see below)
   ATTRIBUTES
   ATTRIBUTES_NAME
   ATTRIBUTES_AFTER_NAME
@@ -26,9 +41,11 @@ const (
   ERR
 )
 
-func (g gamlline) empty()bool {
+// let `parser` determine whether it can skip this line.
+func (g gamlline) Empty()bool {
   return string(g) == ""
 }
+
 func (g * gamlline) fillCurrNode(p* Parser)(err error){
   line := (string)(*g)
   node := p.currentNode
@@ -45,17 +62,26 @@ func (g * gamlline) fillCurrNode(p* Parser)(err error){
   return nil
 }
 
-
-func (g gamlline) sm_curr_node(p* Parser)(err error) {
+// this is where the magic happens...
+func (g gamlline) ProcessIntoCurrentNode(p* Parser)(err error) {
+  // utility/help : a string typedef means we can no longer create
+  // slices using [:]. `line` is here to avoid having to cast all the 
+  // time.
   line := string(g)
+
   node := p.currentNode
+  // node is the current node that we will be filling with content.
+  // it's place in the hierarchy of nodes has been determined by
+  // `Parser` using the indentation.
 
   if 0 == strings.Index(line, "!!!") {
     node.text = "!!!" // not nice!
     node.name = "!!!" // use text == name == "!!!" to signal doctype.
   }
 
-
+  // this will contain the generic "value" we are collecting. This
+  // could contain any number of things in the course of parsing a
+  // line: the tag name, attribute name/values or text.
   var value bytes.Buffer
 
   fillInName := func() {
@@ -63,29 +89,33 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
     value.Reset()
   }
 
-  addClass := func() {
-    if node.name == "" {
-      node.name = "div"
+  // some callback functions just to keep things confusing!
+  add := func(attrN string)(func()) {
+    return func() {
+      if node.name == "" {
+        node.name = "div"
+      }
+      node.AddAttribute(attrN, value.String())
+      value.Reset()
     }
-    node.AddAttribute("class", value.String())
-    value.Reset()
   }
 
-  addId := func() {
-    if node.name == "" {
-      node.name = "div"
-    }
-    node.AddAttribute("id", value.String())
-    value.Reset()
-  }
+  addClass := add("class")
+  addId    := add("id")
 
+  // TEXT_NEW is a state that's reached for nodes that have a tag AND text
+  // on the same line:
+  // %h1 HEADING!
+  // technically, the text node is a child of the tag node so we need
+  // to swap things around ...
   textNew := func () {
     _node := newNode(node)
     node = _node
   }
 
-
+  // state machine starts here.
   state := INITIAL
+
   var name string // remember name of name = attribute pairs
 
   for _, r := range(line) {
@@ -105,6 +135,9 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
       case TEXT:
         value.WriteRune(r)
       case TEXT_OR_ATTRIBUTES:
+        // once the tag part of the node is through and we encounter
+        // whitespace, it's not yet known whether attributes (a = 'b')
+        // will follow or text.
         state = textOrAttribute(r, &value)
       case TEXT_NEW:
         textNew() 
@@ -125,10 +158,12 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
 
 
   // stow away the value we have been collecting once we've
-  // passed through the entire string.
+  // passed through the entire string. Go's bufio.Scanner throws out
+  // the trailing \n, \r\n so the for loop above won't be called after
+  // the last char, we need to clean up depending on which state we're in.
   switch state {
     case INITIAL:
-      panic("cannot happen")
+      return p.Err("impossible state! (really: can't happen)")
     case TAG_NAME:
       fillInName()
     case CLASS:
@@ -144,11 +179,13 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
       node.text = value.String()
     case ATTRIBUTES, ATTRIBUTES_NAME, ATTRIBUTES_AFTER_NAME, ATTRIBUTES_VALUES:
       return p.Err("implausible state!")
-
-
   }
   return
 }
+
+// below are the state functions, more or less one per state.
+// typically they return the subsequent state, but sometimes it was necessary to 
+// cheat.
 
 func attributes_values (r rune, buf * bytes.Buffer, fillInValue func()) gstate {
   switch r {
