@@ -61,6 +61,7 @@ func (p * Parser) handleLine()(err error) {
   }
   p.stripLine()
   p.setCurrentNode()
+  p.strippedLine.fillCurrNode(p)
   return
 }
 
