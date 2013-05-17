@@ -16,14 +16,18 @@ import (
 
 type Parser struct {
   scanner *bufio.Scanner
-  line string
-  line_no int
-  indent int
-  indentType iType
-  indentSpaces int
+  line string      // content of current line sans line ending
+  strippedLine gamlline // line with no comment or surrounding ws
+  lineNo int      // current line number
+  indent int       // current indention level
+  prevIndent int  // previous indent
+  indentType iType // using tabs or space, determined by first line, mixing is not allowed
+  indentSpaces int // how many space == one indention level, determined by usage on first indented line
+  rootNodes []*node
+  currentNode *node
 }
 
-type iType int
+type iType int  // use tabs or space for indention
 const (
   UNKNOWN iType = iota
   TAB
@@ -38,12 +42,12 @@ func NewParser(reader io.Reader)(parser * Parser) {
 
 func (p * Parser) Parse()(err error) {
   for ;p.scanner.Scan(); {
-    p.line_no++
+    p.lineNo++
     p.line = p.scanner.Text()
     if err = p.handleLine(); err != nil {
       return
     }
-    fmt.Printf("(%d): %s\n", p.line_no, p.line)
+    fmt.Printf("(%d): %s\n", p.lineNo, p.line)
   }
   if err = p.scanner.Err(); err != nil {
     return
@@ -55,7 +59,51 @@ func (p * Parser) handleLine()(err error) {
   if err = p.handleIndent(); err != nil {
     return
   }
-  return 
+  p.stripLine()
+  p.setCurrentNode()
+  return
+}
+
+func (p * Parser) setCurrentNode()error {
+  // %p      <-1
+  //   %p    <-2
+  //   %p    <-3
+  //     %p  <-2
+  // %p      <-1
+  //   %p    <-2
+  //     %p  <-2
+  //   %p    <-4
+  switch {
+    case p.indent == 0:              // case #1
+      p.currentNode = newNode(nil)
+      p.rootNodes = append(p.rootNodes, p.currentNode)
+    case p.indent > p.prevIndent:    // case #2
+      if p.indent - p.prevIndent > 1 {
+        return p.Err("indention level increase by more than one")
+      }
+      p.currentNode = newNode(p.currentNode)
+
+    // case p.indent == p.prevIndent:   // case #3
+    //  p.currentNode = newNode(p.currentNode.parent)
+
+    case p.indent <= p.prevIndent:    // case #3 & #4
+      parent := p.currentNode.parent
+      for up := p.prevIndent - p.indent ; up != 0 ; up-- {
+        parent = parent.parent
+      }
+      p.currentNode = newNode(parent)
+  }
+  return nil
+}
+
+// remove comments as well as leading and trailing ws
+// from p.line and assign to p.strippedLine
+func (p * Parser) stripLine() {
+  stripped := p.line
+  if commentStart := strings.Index(p.line, "//") ; commentStart != -1 {
+    stripped = p.line[:commentStart]
+  }
+  p.strippedLine = (gamlline)(strings.TrimSpace(stripped))
 }
 
 func (p * Parser) handleIndent() (err error){
@@ -96,6 +144,7 @@ func (p * Parser) initIndent(ws string)error {
 }
 
 func (p * Parser) _handleIndent(ws string)error {
+  p.prevIndent = p.indent
   switch p.indentType {
     case SPACE:
       if strings.IndexRune(ws, '\t') != -1 {
@@ -117,7 +166,7 @@ func (p * Parser) _handleIndent(ws string)error {
 }
 
 func (p * Parser) Err(msg string) error {
-  return fmt.Errorf("%s line(%d):%s", msg, p.line_no, p.line)
+  return fmt.Errorf("%s line(%d):%s", msg, p.lineNo, p.line)
 }
 
 

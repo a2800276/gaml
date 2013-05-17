@@ -1,0 +1,18 @@
+package gaml
+
+import (
+  "testing"
+  "bytes"
+)
+
+func TestNode(t * testing.T) {
+  buf := bytes.NewBufferString("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
+  parser := NewParser(buf)
+  if err := parser.Parse(); err != nil {
+    t.Error(err)
+  }
+  for _, node := range(parser.rootNodes) {
+    t.Log("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
+    node.Render(0)
+  }
+}
