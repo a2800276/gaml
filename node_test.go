@@ -32,7 +32,7 @@ func TestRender(t * testing.T) {
 
 func TestVaried(t * testing.T) {
   var bufout bytes.Buffer
-  buf := bytes.NewBufferString("%html\n %head\n %body\n  %h1\n   %p\n   %p\n  %h2\n   %p")
+  buf := bytes.NewBufferString("%html\n %head\n  %title bla\n %body\n  %h1\n   %p\n   %p\n  %h2\n   %p")
   parser := NewParser(buf)
   if err := parser.Parse(); err != nil {
     t.Error(err)

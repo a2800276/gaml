@@ -16,6 +16,7 @@ const (
   INCLUDE
   TEXT
   TEXT_OR_ATTRIBUTES
+  TEXT_NEW // need to differentiate between a "pure" line of text and text that comes after a tag.
   ATTRIBUTES
 )
 
@@ -52,6 +53,12 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
   addClass := func() {}
   addId := func() {}
 
+  textNew := func () {
+    _node := newNode(node)
+    node = _node
+  }
+
+
   state := INITIAL
 
   for _, r := range(line) {
@@ -64,18 +71,60 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
         state = tag(r, &value, addClass)
       case ID:
         state = tag(r, &value, addId)
+      case INCLUDE:
+        // ignore for now ... ? 
+        node.text = "<!-- include not handled -->"
+        return nil
+      case TEXT:
+        value.WriteRune(r)
+      case TEXT_OR_ATTRIBUTES:
+        state = textOrAttribute(r, &value)
+      case TEXT_NEW:
+        textNew() 
+        value.WriteRune(r)
+        state = TEXT
+     // case ATTRIBUTES:
+     //   state = attributes(r, &value)
     }
   }
 
+
+  // stow away the value we have been collecting once we've
+  // passed through the entire string.
   switch state {
     case INITIAL:
       panic("cannot happen")
     case TAG_NAME:
-      node.name = value.String()
+      fillInName()
+    case CLASS:
+      addClass()
+    case ID:
+      addId()
+    case INCLUDE:
+      // TODO
+    case TEXT:
+      node.text = value.String()
+    case TEXT_OR_ATTRIBUTES, TEXT_NEW:
+      textNew()
+      node.text = value.String()
+
   }
   return
 }
 
+func textOrAttribute(r rune, buf * bytes.Buffer) gstate {
+  switch r {
+    case ' ':
+      buf.WriteRune(r)
+      return TEXT_OR_ATTRIBUTES
+    case '(':
+      buf.Reset()
+      return ATTRIBUTES
+    default:
+      buf.WriteRune(r)
+      return TEXT_NEW
+  }
+}
 
 func tag(r rune, buf * bytes.Buffer, fillInValue func () )gstate {
     switch r {
