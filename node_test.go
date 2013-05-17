@@ -114,3 +114,20 @@ func TestId(t * testing.T) {
     t.Errorf("expected: %s, got: %s", expected, bufout.String())
   }
 }
+
+func TestAttributes(t * testing.T) {
+   var bufout bytes.Buffer
+  buf := bytes.NewBufferString("%a#bla.blub(ding='dong' ping='pong pung') hello world!")
+  parser := NewParser(buf)
+  if err := parser.Parse(); err != nil {
+    t.Error(err)
+  }
+  for _, node := range(parser.rootNodes) {
+    node.Render(&bufout)
+  }
+  expected := "<a id='bla' class='blub' ding='dong' ping='pong pung'>\n</a>\n"
+  if bufout.String() != expected  {
+    t.Errorf("expected: %s, got: %s", expected, bufout.String())
+  }
+
+}

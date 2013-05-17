@@ -2,6 +2,7 @@ package gaml
 
 import (
   "bytes"
+  "fmt"
 )
 
 type gamlline string
@@ -110,7 +111,7 @@ func (g gamlline) sm_curr_node(p* Parser)(err error) {
           return err
         }
       case ATTRIBUTES_VALUES:
-        state = attributes_values(r, &value, func(){ node.AddAttribute(name, buf.String())} )
+        state = attributes_values(r, &value, func(){ node.AddAttribute(name, value.String())} )
     }
   }
 
@@ -153,22 +154,22 @@ func attributes_values (r rune, buf * bytes.Buffer, fillInValue func()) gstate {
   }
 }
 
-func attributes_after_name (r rune, buf * bytes.Buffer) gstate, error {
+func attributes_after_name (r rune, buf * bytes.Buffer)(gstate, error) {
   // this one is stupid.
   switch r {
     case ' ', '=':                             // <-- allows a ==    == = 'bla'
-      return ATTRIBUTES_AFTER_NAME, ""
+      return ATTRIBUTES_AFTER_NAME, nil
     case '\'', '"':                            // <-- allows a = 'Bla"
-      return ATTRIBUTES_VALUES, ""
+      return ATTRIBUTES_VALUES, nil
     default:
       return ERR, fmt.Errorf("unquoted attribute values")
   }
 }
 
-func attributes_name (r rune, buf * bytes.Buffer) gstate, string {
+func attributes_name (r rune, buf * bytes.Buffer)(gstate, string) {
   switch r {
-    case ' ':
-      name = buf.String() 
+    case ' ', '=':
+      name := buf.String() 
       buf.Reset()
       return ATTRIBUTES_AFTER_NAME, name
     default:
