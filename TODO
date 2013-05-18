@@ -1,13 +1,14 @@
-> includes
 better tests
-!!! doctypes (and maybe corresponding options)
-
 rendering option:
   indent
   quoting, escaping
 
-samples for combining with go templates
 
 http handler
 
 list (configurable) of autoclosing tags (<br/>)
+
+interface work, much better template integration
+  ignore {{}} go templates in tags and attributes.
+
+> includes (can be handled through go templates ...)

@@ -24,6 +24,7 @@ type Parser struct {
 	indentSpaces int      // how many space == one indention level, determined by usage on first indented line
 	rootNodes    []*node
 	currentNode  *node
+	done         bool
 }
 
 type iType int // use tabs or space for indention
@@ -39,7 +40,17 @@ func NewParser(reader io.Reader) (parser *Parser) {
 	return
 }
 
+func GamlToHtml(gaml string) (html string, err error) {
+	parser := NewParser(bytes.NewBufferString(gaml))
+	return parser.ToHtmlString()
+}
+
 func (p *Parser) Parse() (err error) {
+	if p.done {
+		return
+	} else {
+		p.done = true
+	}
 	for p.scanner.Scan() {
 		p.lineNo++
 		p.line = p.scanner.Text()
@@ -50,6 +61,24 @@ func (p *Parser) Parse() (err error) {
 	}
 	if err = p.scanner.Err(); err != nil {
 		return
+	}
+	return
+}
+
+func (p *Parser) ToHtmlString() (html string, err error) {
+	var output bytes.Buffer
+	if err = p.ToHtml(&output); err != nil {
+		return "", err
+	}
+	return output.String(), nil
+}
+
+func (p *Parser) ToHtml(writer io.Writer) (err error) {
+	if err = p.Parse(); err != nil {
+		return
+	}
+	for _, node := range p.rootNodes {
+		node.Render(writer)
 	}
 	return
 }
@@ -109,7 +138,7 @@ func (p *Parser) stripLine() {
 }
 
 func (p *Parser) handleIndent() (err error) {
-	if p.line[0] != ' ' && p.line[0] != '\t' {
+	if p.line == "" || (p.line[0] != ' ' && p.line[0] != '\t') {
 		p.indent = 0
 		return
 	}
