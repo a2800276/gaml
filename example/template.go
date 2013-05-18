@@ -59,7 +59,6 @@ func main () {
 	if err != nil {
 		fmt.Printf("error: %s", err.Error())
 	}
-	println(html_t)
 	template,err = template.New("test_template2").Parse(html_t)
 	if err != nil {
 		fmt.Printf("error: %s", err.Error())
