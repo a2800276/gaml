@@ -1,4 +1,3 @@
-
 # About
 
 Fairly haml-ish like html templating for GO.
@@ -21,7 +20,7 @@ Attributes are handled like this:
 
     %a(href="http://example.com")
 
-`id` and `class` attributes can be abbreviated even more, with `#` and `.` 
+`id` and `class` attributes can be abbreviated further with `#` and `.` 
 respectively:
 
     %a.className#idName
@@ -35,7 +34,7 @@ becomes
 
     <div class='bla'></div>
 
-In case you are interested, read more about haml (here)[] but beware that
+In case you are interested, read more about haml [here](http://haml.info/) but beware that
 most of the "advanced" features are not implemented by design.
 
 This means the library lacking a number of haml features, which, depending on your point of
@@ -72,5 +71,5 @@ I need more features or people contribute stuff.
 
 ## LICENSE
 
-MIT
+MIT, see LICENSE file.
 
