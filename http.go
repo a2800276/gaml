@@ -12,7 +12,7 @@ import (
 // /bla.html              -> ${base}/bla.haml
 // /bla/bla/dingdong.html -> ${base}/bla/bla/dingdong.haml
 // /bla/bla/              -> ${base}/bla/bla/index.haml
-func NewHamlHandler(base string) (hndl http.Handler, err error) {
+func NewGamlHandler(base string) (hndl http.Handler, err error) {
 	var l Loader
 	if l, err = NewFileSystemLoader(base); err != nil {
 		return
