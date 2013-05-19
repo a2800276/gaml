@@ -42,6 +42,24 @@ func TestDoctype(t *testing.T) {
 		"<!DOCTYPE html>\n<html>\n <body>\n  <h1>\n    Hello World!\n  </h1>\n </body>\n</html>\n")
 }
 
+const blank_line = `
+%html
+	%head
+
+	%body
+`
+const blank_expected = `<html>
+ <head>
+ </head>
+ <body>
+ </body>
+</html>
+`
+
+func TestBlank(t *testing.T) {
+	test_simple(t, blank_line, blank_expected)
+}
+
 //func TestNode(t * testing.T) {
 //  buf := bytes.NewBufferString("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
 //  parser := NewParser(buf)

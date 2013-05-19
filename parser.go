@@ -84,11 +84,13 @@ func (p *Parser) ToHtml(writer io.Writer) (err error) {
 }
 
 func (p *Parser) handleLine() (err error) {
-	if err = p.handleIndent(); err != nil {
-		return
-	}
+
 	p.stripLine()
+
 	if !p.strippedLine.Empty() {
+		if err = p.handleIndent(); err != nil {
+			return
+		}
 		p.setCurrentNode()
 		p.strippedLine.ProcessIntoCurrentNode(p)
 	}
