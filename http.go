@@ -24,7 +24,6 @@ type httpHamlHandler struct {
 	loader Loader
 }
 
-
 func adjustSuffix(path string) string {
 	const htmlExt = ".html"
 	const htmExt = ".htm"

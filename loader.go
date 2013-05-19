@@ -61,6 +61,6 @@ func (l *fileSystemLoader) Load(id_string interface{}) (parser *Parser, err erro
 	defer file.Close()
 
 	parser = NewParser(file)
-  err = parser.Parse()
+	err = parser.Parse()
 	return
 }
