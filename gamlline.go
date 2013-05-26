@@ -29,6 +29,9 @@ const (
 	TAG_NAME
 	CLASS
 	ID
+	OPEN_BRACE
+	PASS_LITERAL
+	CLOSE_BRACE
 	INCLUDE
 	TEXT
 	TEXT_OR_ATTRIBUTES
@@ -113,20 +116,35 @@ func (g gamlline) ProcessIntoCurrentNode(p *Parser) (err error) {
 	}
 
 	// state machine starts here.
-	state := INITIAL
+	state          := INITIAL
+	prevStateBrace := ERR
+
 
 	var name string // remember name of name = attribute pairs
 
 	for _, r := range line {
+	REWIND:
 		switch state {
 		case INITIAL:
 			state = initial(r, &value)
 		case TAG_NAME:
+			prevStateBrace = state
 			state = tag(r, &value, fillInName, TAG_NAME)
 		case CLASS:
+			prevStateBrace = state
 			state = tag(r, &value, addClass, CLASS)
 		case ID:
+			prevStateBrace = state
 			state = tag(r, &value, addId, ID)
+		case OPEN_BRACE:
+			state = openBrace(r, &value, prevStateBrace)
+			if state != PASS_LITERAL {
+				goto REWIND
+			}
+		case PASS_LITERAL:
+			state = passLiteral(r, &value)
+		case CLOSE_BRACE:
+			state = closeBrace(r, &value, prevStateBrace)
 		case INCLUDE:
 			// ignore for now ... ?
 			node.text = "<!-- include not handled -->"
@@ -261,9 +279,42 @@ func tag(r rune, buf *bytes.Buffer, fillInValue func(), state gstate) gstate {
 	case '(':
 		fillInValue()
 		return ATTRIBUTES
+	case '{':
+		buf.WriteRune(r)
+		return OPEN_BRACE
 	default:
 		buf.WriteRune(r)
 		return state
+	}
+}
+
+func openBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
+	switch r {
+		case '{': // second {, collect literally
+			buf.WriteRune(r)
+			return PASS_LITERAL
+		default:
+			return prev_state
+	}
+}
+func passLiteral(r rune, buf *bytes.Buffer) gstate {
+	buf.WriteRune(r)
+	switch r {
+		case '}':
+			return CLOSE_BRACE
+		default:
+			return PASS_LITERAL
+	}
+}
+
+func closeBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
+	buf.WriteRune(r)
+	// r was either a second }, so we're back out of the {{ }} block
+	switch r {
+		case '}':
+			return prev_state
+		default:
+			return PASS_LITERAL
 	}
 }
 

@@ -42,6 +42,17 @@ func TestDoctype(t *testing.T) {
 		"<!DOCTYPE html>\n<html>\n <body>\n  <h1>\n    Hello World!\n  </h1>\n </body>\n</html>\n")
 }
 
+func TestSpecialInQuotes(t *testing.T) {
+	test_simple(t, "%bla(class='bla.bla')", "<bla class='bla.bla'>\n</bla>\n")
+	test_simple(t, "%bla(class='bla#bla')", "<bla class='bla#bla'>\n</bla>\n")
+	test_simple(t, "%li#{{.First}}_{{.Last}} {{.First}}", "<li id='{{.First}}_{{.Last}}'>\n  {{.First}}\n</li>\n")
+	test_simple(t, "%li#{.First}} {{.First}}", "<li id='{' class='First}}'>\n  {{.First}}\n</li>\n")
+	test_simple(t, "%li#{{.First} }} {{.First}}", "<li id='{{.First} }}'>\n  {{.First}}\n</li>\n")
+	test_simple(t, "%{{%%.#}}", "<{{%%.#}}>\n</{{%%.#}}>\n")
+	test_simple(t, "%a.{{.class_name}}", "<a class='{{.class_name}}'>\n</a>\n")
+}
+
+
 const blank_line = `
 %html
 	%head

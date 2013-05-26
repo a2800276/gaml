@@ -35,13 +35,12 @@ const gaml_template_2 = `
 			{{ end }}
 
 `
-// DOESN'T WORK!
+// also works! 
 const gaml_template_3 = `
 %html
 	%body
 		%ul
 			{{ range . }}
-			<!-- currently doesn't work because of . in the id value !! -->
 			%li#{{.First}}_{{.Last}} {{.First}} {{.Last}} 
 			{{ end }}
 
@@ -65,5 +64,15 @@ func main () {
 	}
 	template.Execute(os.Stdout, People)
 
+
+	html_t, err = gaml.GamlToHtml(gaml_template_3)
+	if err != nil {
+		fmt.Printf("error: %s", err.Error())
+	}
+	template,err = template.New("test_template3").Parse(html_t)
+	if err != nil {
+		fmt.Printf("error: %s", err.Error())
+	}
+	template.Execute(os.Stdout, People)
 
 }
