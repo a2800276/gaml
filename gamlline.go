@@ -48,24 +48,8 @@ func (g gamlline) Empty() bool {
 	return string(g) == ""
 }
 
-func (g *gamlline) fillCurrNode(p *Parser) (err error) {
-	line := (string)(*g)
-	node := p.currentNode
-	var name bytes.Buffer
-	switch line[0] {
-	case '%':
-		for _, r := range line[1:] {
-			name.WriteRune(r)
-		}
-	default:
-		return p.Err("unexpected char")
-	}
-	node.name = name.String()
-	return nil
-}
-
 // this is where the magic happens...
-func (g gamlline) ProcessIntoCurrentNode(p *Parser) (err error) {
+func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	// utility/help : a string typedef means we can no longer create
 	// slices using [:]. `line` is here to avoid having to cast all the
 	// time.
@@ -77,7 +61,7 @@ func (g gamlline) ProcessIntoCurrentNode(p *Parser) (err error) {
 	// `Parser` using the indentation.
 
 	if 0 == strings.Index(line, "!!!") {
-		node.text = "!!!" // not nice!
+		node.text = "!!!" // not nice! "special" case ...
 		node.name = "!!!" // use text == name == "!!!" to signal doctype.
 	}
 
@@ -116,9 +100,8 @@ func (g gamlline) ProcessIntoCurrentNode(p *Parser) (err error) {
 	}
 
 	// state machine starts here.
-	state          := INITIAL
+	state := INITIAL
 	prevStateBrace := ERR
-
 
 	var name string // remember name of name = attribute pairs
 
@@ -193,7 +176,8 @@ func (g gamlline) ProcessIntoCurrentNode(p *Parser) (err error) {
 	case TEXT_OR_ATTRIBUTES, TEXT_NEW:
 		textNew()
 		node.text = value.String()
-	case ATTRIBUTES, ATTRIBUTES_NAME, ATTRIBUTES_AFTER_NAME, ATTRIBUTES_VALUES:
+	//case ATTRIBUTES, ATTRIBUTES_NAME, ATTRIBUTES_AFTER_NAME, ATTRIBUTES_VALUES:
+	default:
 		return p.Err("implausible state!")
 	}
 	return
@@ -288,36 +272,6 @@ func tag(r rune, buf *bytes.Buffer, fillInValue func(), state gstate) gstate {
 	}
 }
 
-func openBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
-	switch r {
-		case '{': // second {, collect literally
-			buf.WriteRune(r)
-			return PASS_LITERAL
-		default:
-			return prev_state
-	}
-}
-func passLiteral(r rune, buf *bytes.Buffer) gstate {
-	buf.WriteRune(r)
-	switch r {
-		case '}':
-			return CLOSE_BRACE
-		default:
-			return PASS_LITERAL
-	}
-}
-
-func closeBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
-	buf.WriteRune(r)
-	// r was either a second }, so we're back out of the {{ }} block
-	switch r {
-		case '}':
-			return prev_state
-		default:
-			return PASS_LITERAL
-	}
-}
-
 func initial(r rune, buf *bytes.Buffer) gstate {
 	switch r {
 	case '%':
@@ -331,5 +285,58 @@ func initial(r rune, buf *bytes.Buffer) gstate {
 	default:
 		buf.WriteRune(r)
 		return TEXT
+	}
+}
+
+// the final three functions handle go template style braces.
+// since '.' tends to come up in go templates quite a lot
+// and -on the other hand- has a special meaning in html/g(h)aml
+// it require special handling.
+// In other cases there is no escaping of ' " . # %
+// A dot (.) simply can't be part of a tag name, id or class (*)
+// BUT, consider the following:
+//
+//    %tag#{{.calculated_id}}
+//
+// This would result in
+//
+//    <tag id="{{" class="calculated_id}}"> ...
+//
+// So anything following an opening {{ up until }} is passed through.
+// we do need to keep track of the state we were previously in,
+// though (TAG, CLASS, ID) to return to it after handling {{}}.
+//
+// (*) dot (.) can be part of an id or class name if they aren't
+// defined in shortcut notation, i.e.:
+//
+//    %tag(id=".")
+//
+func openBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
+	switch r {
+	case '{': // second {, collect literally
+		buf.WriteRune(r)
+		return PASS_LITERAL
+	default:
+		return prev_state
+	}
+}
+func passLiteral(r rune, buf *bytes.Buffer) gstate {
+	buf.WriteRune(r)
+	switch r {
+	case '}':
+		return CLOSE_BRACE
+	default:
+		return PASS_LITERAL
+	}
+}
+
+func closeBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
+	buf.WriteRune(r)
+	// r was either a second }, so we're back out of the {{ }} block
+	switch r {
+	case '}':
+		return prev_state
+	default:
+		return PASS_LITERAL
 	}
 }

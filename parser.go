@@ -92,7 +92,9 @@ func (p *Parser) handleLine() (err error) {
 			return
 		}
 		p.setCurrentNode()
-		p.strippedLine.ProcessIntoCurrentNode(p)
+		if err = p.strippedLine.processIntoCurrentNode(p); err != nil {
+			return err
+		}
 	}
 	return
 }

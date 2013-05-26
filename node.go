@@ -17,6 +17,11 @@ import (
 	"strings"
 )
 
+//http://www.w3.org/TR/html5/syntax.html#void-elements
+var voidElements = []string{"area", "base", "br", "col", "command", "embed", "hr",
+	"img", "input", "keygen", "link", "meta", "param",
+	"source", "track", "wbr"}
+
 type node struct {
 	parent     *node               // parent, root nodes have parent == nil
 	children   []*node             // child nodes
@@ -86,6 +91,10 @@ func (n *node) renderTag(w io.Writer, indent int) {
 
 	io.WriteString(w, ">\n")
 
+	if n.isVoid() {
+		return
+	}
+
 	for _, child := range n.children {
 		child.render(w, indent+1)
 	}
@@ -94,6 +103,15 @@ func (n *node) renderTag(w io.Writer, indent int) {
 	io.WriteString(w, "</")
 	io.WriteString(w, n.name)
 	io.WriteString(w, ">\n") // what to do about the trailing \n !?
+}
+
+func (n *node) isVoid() bool {
+	for _, name := range voidElements {
+		if n.name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (n *node) renderAttributes(w io.Writer) {
