@@ -1,4 +1,5 @@
 better tests
+
 rendering option:
   indent
   quoting, escaping
@@ -6,9 +7,6 @@ rendering option:
 
 http handler
 
-list (configurable) of autoclosing tags (<br/>)
-
 interface work, much better template integration
-  ignore {{}} go templates in tags and attributes.
 
 > includes (can be handled through go templates ...)

@@ -4,8 +4,13 @@ Fairly haml-ish like html templating for GO.
 
 Makes it easier to type up html by hand by avoiding having to type
 superfluous angled bracked, closing tags, and some other redundancies.
-Fans of Haml claim that it's not just a shortcut, but beautiful (like Haikus)
-but they have a warped sense of aesthetics.
+Fans of Haml claim that it's not just a shortcut, but beautiful (like
+Haikus) but they have a warped sense of aesthetics.
+
+I'm going to assume you have a vague notion of what haml is so I'll keep
+it short.  In case you are interested, read more about haml
+[here](http://haml.info/) but beware that most of the "advanced"
+features are not implemented by design.
 
 Basically this:
 
@@ -34,8 +39,6 @@ becomes
 
     <div class='bla'></div>
 
-In case you are interested, read more about haml [here](http://haml.info/) but beware that
-most of the "advanced" features are not implemented by design.
 
 This means the library lacking a number of haml features, which, depending on your point of
 view is either a good thing or a catatrophe:
@@ -60,6 +63,7 @@ portable anyway.
 * I don't need it, I only want to generate static html
 * It's too hard for me
 * Go comes with a great templating engine which can easily be combined with gaml
+  see the `template.go` example in the example subdirectory.
 
 ## Less formatting options
 
