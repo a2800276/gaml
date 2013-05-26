@@ -1,6 +1,6 @@
 # About
 
-Fairly haml-ish like html templating for GO.
+Fairly haml-ish like html templating for Go.
 
 Makes it easier to type up html by hand by avoiding having to type
 superfluous angled bracked, closing tags, and some other redundancies.
@@ -13,7 +13,7 @@ it short.  In case you are interested, read more about haml
 features are not implemented by design.
 
 This means the library lacking a number of haml features, which,
-depending on your point of view is either a good thing or a catatrophe:
+depending on your point of view is either a good thing or a catatrophe.
 
 ## G/HAML in 10 seconds.
 
@@ -25,8 +25,8 @@ Basically this:
         %h1 Hello World
 
 translates to the corresponding HTML. You may indent using tabs or
-spaces, but be consistant. The first indented line determines a.)
-whether you are using tabs, resp. how many spaces consitute one level of
+spaces, but be consistant. The first indented line determines 
+whether you are using tabs or spaces, and in the latter case how many spaces consitute one level of
 indention.
 
 Attributes are handled like this:
@@ -49,16 +49,16 @@ becomes:
 
 In consequence, an id or class shortcut-attribute can't contain dot or
 hash in it's name. In general, most errors are currently handled via
-Garbage-in-garbage-out and there is no escaping special characters. With
+Garbage-in-garbage-out and escaping special characters is not supported. With
 one exception:
 
 ### Go Templates
 
 Gaml doesn't support variable interpolation. Mainly because I'm to lazy
 (... too stupid ...). I figure if you need variable interpolation, you
-can use the Gaml output as input to Go templates. Go templates make
+should use the Gaml output as input to Go templates. Go templates make
 judivious use of the dot (.) which, of course conflicts with the g/haml
-class shortcut. Therefor, the exception to the "no-escaping" rule is:
+class shortcut. Therefore, the exception to the "no-escaping" rule is:
 everything in go template double braces (`{{ .go_template_stuff }}`) is
 passed through and not considered to be a g/haml dot, hash or whatever.
 
@@ -69,7 +69,7 @@ passed through and not considered to be a g/haml dot, hash or whatever.
 
     %a {bla => "durp"}
 
-### Rationale
+#### Rationale
 
 I don't see the point. I'm perfectly happy with "html" style attributes:
 
@@ -80,7 +80,7 @@ portable anyway.
 
 ### no variable interpolation
 
-### Rationale
+#### Rationale
 
 * I don't need it, I only want to generate static html
 * It's too hard for me
@@ -89,7 +89,7 @@ portable anyway.
 
 ### Fewer/no formatting options
 
-### Rationale
+#### Rationale
 
 I'm lazy, currently I'm just implementing the stuff I need. This will change as
 I need more features or people contribute stuff.
