@@ -22,10 +22,10 @@ type Parser struct {
 	prevIndent   int      // previous indent
 	indentType   iType    // using tabs or space, determined by first line, mixing is not allowed
 	indentSpaces int      // how many space == one indention level, determined by usage on first indented line
-	rootNodes    []*node
-	currentNode  *node
-	done         bool
-	err					 error
+	rootNodes    []*node  // the result of parsing
+	currentNode  *node    // keeps track of the current position while parsing
+	done         bool     // done parsing?
+	err          error    // cache error which may have occured during parsing
 }
 
 type iType int // use tabs or space for indention
@@ -40,7 +40,6 @@ func NewParser(reader io.Reader) (parser *Parser) {
 	parser.scanner = bufio.NewScanner(reader)
 	return
 }
-
 
 func (p *Parser) Parse() (err error) {
 	if p.done {
@@ -63,8 +62,6 @@ func (p *Parser) Parse() (err error) {
 	}
 	return
 }
-
-
 
 func (p *Parser) handleLine() (err error) {
 

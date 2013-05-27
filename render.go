@@ -17,7 +17,7 @@ func GamlToHtml(gaml string) (html string, err error) {
 	return renderer.ToHtmlString(), nil
 }
 
-func NewRenderer(p * Parser)(r Renderer, err error) {
+func NewRenderer(p *Parser) (r Renderer, err error) {
 	if err = p.Parse(); err != nil {
 		return
 	}
@@ -35,4 +35,3 @@ func (r *Renderer) ToHtmlString() (html string) {
 	r.ToHtml(&output)
 	return output.String()
 }
-
