@@ -1,7 +1,6 @@
 package gaml
 
 import (
-	"bytes"
 	"testing"
 )
 
@@ -52,9 +51,7 @@ func TestSpecialInQuotes(t *testing.T) {
 }
 
 func TestSpecialInQuotesFail(t *testing.T) {
-	gaml := "%a.{{.something or the other"
-	parser := NewParser(bytes.NewBufferString(gaml))
-	if _, err := parser.ToHtmlString(); err == nil {
+	if _, err := GamlToHtml("%a.{{.something or the other"); err == nil {
 		t.Error("expected an error, did not get!")
 	} else if err.Error() != "implausible state! line(1):%a.{{.something or the other" {
 		t.Errorf("unexpected error: %s", err.Error())

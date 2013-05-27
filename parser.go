@@ -25,6 +25,7 @@ type Parser struct {
 	rootNodes    []*node
 	currentNode  *node
 	done         bool
+	err					 error
 }
 
 type iType int // use tabs or space for indention
@@ -40,14 +41,10 @@ func NewParser(reader io.Reader) (parser *Parser) {
 	return
 }
 
-func GamlToHtml(gaml string) (html string, err error) {
-	parser := NewParser(bytes.NewBufferString(gaml))
-	return parser.ToHtmlString()
-}
 
 func (p *Parser) Parse() (err error) {
 	if p.done {
-		return
+		return p.err
 	} else {
 		p.done = true
 	}
@@ -55,33 +52,19 @@ func (p *Parser) Parse() (err error) {
 		p.lineNo++
 		p.line = p.scanner.Text()
 		if err = p.handleLine(); err != nil {
+			p.err = err
 			return
 		}
 		//fmt.Printf("(%d): %s\n", p.lineNo, p.line)
 	}
 	if err = p.scanner.Err(); err != nil {
+		p.err = err
 		return
 	}
 	return
 }
 
-func (p *Parser) ToHtmlString() (html string, err error) {
-	var output bytes.Buffer
-	if err = p.ToHtml(&output); err != nil {
-		return "", err
-	}
-	return output.String(), nil
-}
 
-func (p *Parser) ToHtml(writer io.Writer) (err error) {
-	if err = p.Parse(); err != nil {
-		return
-	}
-	for _, node := range p.rootNodes {
-		node.Render(writer)
-	}
-	return
-}
 
 func (p *Parser) handleLine() (err error) {
 
