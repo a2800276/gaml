@@ -53,6 +53,11 @@ func (n *node) AddAttribute(name string, value string) {
 	n.attributes[name] = append(n.attributes[name], value)
 }
 
+func (n *node) addChild(child *node) {
+	child.parent = n
+	n.children = append(n.children, child)
+}
+
 // Write an html representation of this node to the specified `Writer`
 // currently, there is no way to influence how the node will be
 // rendered. Take it or leave it!

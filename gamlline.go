@@ -130,8 +130,9 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 			state = closeBrace(r, &value, prevStateBrace)
 		case INCLUDE:
 			// ignore for now ... ?
-			node.text = "<!-- include not handled -->"
-			return nil
+			//node.text = "<!-- include not handled -->"
+			//return nil
+			value.WriteRune(r)
 		case TEXT:
 			value.WriteRune(r)
 		case TEXT_OR_ATTRIBUTES:
@@ -170,7 +171,7 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	case ID:
 		addId()
 	case INCLUDE:
-		// TODO
+		err = p.parseInclude(value.String())
 	case TEXT:
 		node.text = value.String()
 	case TEXT_OR_ATTRIBUTES, TEXT_NEW:

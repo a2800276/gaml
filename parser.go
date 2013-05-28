@@ -14,18 +14,19 @@ import (
 //   %h1
 
 type Parser struct {
-	scanner      *bufio.Scanner
-	line         string   // content of current line sans line ending
-	strippedLine gamlline // line with no comment or surrounding ws
-	lineNo       int      // current line number
-	indent       int      // current indention level
-	prevIndent   int      // previous indent
-	indentType   iType    // using tabs or space, determined by first line, mixing is not allowed
-	indentSpaces int      // how many space == one indention level, determined by usage on first indented line
-	rootNodes    []*node  // the result of parsing
-	currentNode  *node    // keeps track of the current position while parsing
-	done         bool     // done parsing?
-	err          error    // cache error which may have occured during parsing
+	scanner       *bufio.Scanner
+	line          string   // content of current line sans line ending
+	strippedLine  gamlline // line with no comment or surrounding ws
+	lineNo        int      // current line number
+	indent        int      // current indention level
+	prevIndent    int      // previous indent
+	indentType    iType    // using tabs or space, determined by first line, mixing is not allowed
+	indentSpaces  int      // how many space == one indention level, determined by usage on first indented line
+	rootNodes     []*node  // the result of parsing
+	currentNode   *node    // keeps track of the current position while parsing
+	done          bool     // done parsing?
+	err           error    // cache error which may have occured during parsing
+	IncludeLoader Loader
 }
 
 type iType int // use tabs or space for indention
@@ -38,6 +39,12 @@ const (
 func NewParser(reader io.Reader) (parser *Parser) {
 	parser = new(Parser)
 	parser.scanner = bufio.NewScanner(reader)
+	return
+}
+
+func NewParserString(gaml string) (parser *Parser) {
+	parser = new(Parser)
+	parser.scanner = bufio.NewScanner(bytes.NewBufferString(gaml))
 	return
 }
 
@@ -59,6 +66,26 @@ func (p *Parser) Parse() (err error) {
 	if err = p.scanner.Err(); err != nil {
 		p.err = err
 		return
+	}
+	return
+}
+
+func (p *Parser) parseInclude(name string) (err error) {
+	var p2 *Parser
+	if p2, err = p.IncludeLoader.Load(strings.TrimSpace(name)); err != nil {
+		return
+	}
+	p2.Parse()
+	// currentNode will be a blank node representing the
+	// include line, this needs to be replaced by its parent.
+	// finally, the last child element needs to be removed
+	// (the last child is the blank include node)
+	p.currentNode = p.currentNode.parent
+	l := len(p.currentNode.children)
+	p.currentNode.children = p.currentNode.children[0 : l-1]
+
+	for _, node := range p2.rootNodes {
+		p.currentNode.addChild(node)
 	}
 	return
 }
