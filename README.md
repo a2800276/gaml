@@ -62,6 +62,32 @@ class shortcut. Therefore, the exception to the "no-escaping" rule is:
 everything in go template double braces (`{{ .go_template_stuff }}`) is
 passed through and not considered to be a g/haml dot, hash or whatever.
 
+## Additional Functionality
+
+### Include
+
+gaml is able to include other fragments using "> fileToInclude", e.g.
+
+    %html
+      %body
+        %h1
+          > childOfH1.gaml
+
+or
+
+    %html
+      %body
+        %h1
+        > childOfBodySiblingOfH1.gaml
+
+The examples above will insert the fragments named `childOfH1.gaml`, resp
+`childOfBodySiblingOfH1.gaml` into the resulting html at a position as
+suggested by their names. 
+
+To use includes, the Parser needs to be assigned a Loader so it knows
+how to retrieve the includes. If the Parser is created using the
+FileSystemLoader, loading includes are handled by the same
+FileSystemLoader by default. (This needs to be explained more clearly:)
 
 ## Most glaring HAML incompatibilities
 
