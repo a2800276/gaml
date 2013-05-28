@@ -64,9 +64,10 @@ passed through and not considered to be a g/haml dot, hash or whatever.
 
 ## Additional Functionality
 
-### Include
+### Includes
 
-gaml is able to include other fragments using "> fileToInclude", e.g.
+gaml is able to include other fragments using `> fileToIncluder`
+notation, e.g.
 
     %html
       %body
@@ -81,7 +82,7 @@ or
         > childOfBodySiblingOfH1.gaml
 
 The examples above will insert the fragments named `childOfH1.gaml`, resp
-`childOfBodySiblingOfH1.gaml` into the resulting html at a position as
+`childOfBodySiblingOfH1.gaml` into the resulting html at the position 
 suggested by their names. 
 
 To use includes, the Parser needs to be assigned a Loader so it knows
