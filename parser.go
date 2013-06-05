@@ -80,12 +80,14 @@ func (p *Parser) parseInclude(name string) (err error) {
 	// include line, this needs to be replaced by its parent.
 	// finally, the last child element needs to be removed
 	// (the last child is the blank include node)
-	p.currentNode = p.currentNode.parent
-	l := len(p.currentNode.children)
-	p.currentNode.children = p.currentNode.children[0 : l-1]
+
+	localcurrent := p.currentNode.parent
+	l := len(localcurrent.children)
+	localcurrent.children = localcurrent.children[0 : l-1]
 
 	for _, node := range p2.rootNodes {
-		p.currentNode.addChild(node)
+		localcurrent.addChild(node)
+		p.currentNode = node
 	}
 	return
 }

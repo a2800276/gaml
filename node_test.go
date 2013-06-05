@@ -4,11 +4,19 @@ import (
 	"testing"
 )
 
+
+
+func test_compare(t *testing.T, is string, expected string) {
+	if is != expected {
+		t.Errorf("expected: %s, got: %s", expected, is)
+	}
+}
+
 func test_simple(t *testing.T, in string, expected string) {
 	if out, err := GamlToHtml(in); err != nil {
 		t.Error(err)
-	} else if out != expected {
-		t.Errorf("expected: %s, got: %s", expected, out)
+	} else {
+		test_compare(t, out, expected)
 	}
 }
 
