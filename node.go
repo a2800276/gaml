@@ -47,10 +47,22 @@ func newNode(parent *node) *node {
 
 // Appends a new value to the list of attributes of this node.
 func (n *node) AddAttribute(name string, value string) {
+	n.addAttribute(name, value)
+}
+
+func (n *node) AddBooleanAttribute(name string) {
+	n.addAttribute(name, nil)
+}
+
+func (n *node) addAttribute(name string, value interface{}) {
 	if n.attributes == nil {
 		n.attributes = make(map[string][]string)
 	}
-	n.attributes[name] = append(n.attributes[name], value)
+	if value == nil {
+		n.attributes[name] = nil
+		return
+	}
+	n.attributes[name] = append(n.attributes[name], value.(string))
 }
 
 func (n *node) addChild(child *node) {
@@ -127,9 +139,11 @@ func (n *node) renderAttributes(w io.Writer) {
 	for key, values := range n.attributes {
 		io.WriteString(w, " ")
 		io.WriteString(w, key)
-		io.WriteString(w, "='")
-		io.WriteString(w, strings.Join(values, " "))
-		io.WriteString(w, "'")
+		if values != nil {
+			io.WriteString(w, "='")
+			io.WriteString(w, strings.Join(values, " "))
+			io.WriteString(w, "'")
+		}
 	}
 }
 

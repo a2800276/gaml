@@ -30,6 +30,11 @@ func TestId(t *testing.T) {
 	test_simple(t, "%img#{src='test.png'}", "<img id='{src='test' class='png'}'>\n")
 }
 
+func TestAttributeNoValue(t *testing.T) {
+	test_simple(t, "%html(ng-app)", "<html ng-app>\n</html>\n")
+	test_simple(t, "%html(ng-app ding='dong')", "<html ng-app ding='dong'>\n</html>\n")
+	test_simple(t, "%html(ding='dong' ng-app)", "<html ding='dong' ng-app>\n</html>\n")
+}
 func TestAttributes(t *testing.T) {
 	test_simple(t, "%a#bla.blub(ding='dong' ping='pong pung') hello world!",
 		"<a id='bla' class='blub' ding='dong' ping='pong pung'>\n</a>\n")
@@ -53,7 +58,7 @@ func TestSpecialInQuotes(t *testing.T) {
 func TestSpecialInQuotesFail(t *testing.T) {
 	if _, err := GamlToHtml("%a.{{.something or the other"); err == nil {
 		t.Error("expected an error, did not get!")
-	} else if err.Error() != "implausible state! line(1):%a.{{.something or the other" {
+	} else if err.Error() != "implausible state! (PASS_LITERAL) line(1):%a.{{.something or the other" {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 

@@ -43,6 +43,45 @@ const (
 	ERR
 )
 
+func (s gstate) String() string {
+	switch s {
+	case INITIAL:
+		return "INITIAL"
+	case TAG_NAME:
+		return "TAG_NAME"
+	case CLASS:
+		return "CLASS"
+	case ID:
+		return "ID"
+	case OPEN_BRACE:
+		return "OPEN_BRACE"
+	case PASS_LITERAL:
+		return "PASS_LITERAL"
+	case CLOSE_BRACE:
+		return "CLOSE_BRACE"
+	case INCLUDE:
+		return "INCLUDE"
+	case TEXT:
+		return "TEXT"
+	case TEXT_OR_ATTRIBUTES:
+		return "TEXT_OR_ATTRIBUTES"
+	case TEXT_NEW:
+		return "TEXT_NEW"
+	case ATTRIBUTES:
+		return "ATTRIBUTES"
+	case ATTRIBUTES_NAME:
+		return "ATTRIBUTES_NAME"
+	case ATTRIBUTES_AFTER_NAME:
+		return "ATTRIBUTES_AFTER_NAME"
+	case ATTRIBUTES_VALUES:
+		return "ATTRIBUTES_VALUES"
+	case ERR:
+		return "ERR"
+	default:
+		return "unknown state"
+	}
+}
+
 // let `parser` determine whether it can skip this line.
 func (g gamlline) Empty() bool {
 	return string(g) == ""
@@ -149,8 +188,9 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 		case ATTRIBUTES_NAME:
 			state, name = attributes_name(r, &value)
 		case ATTRIBUTES_AFTER_NAME:
-			if state, err = attributes_after_name(r, &value); err != nil {
-				return err
+			if state = attributes_after_name(r, &value); (state != ATTRIBUTES_AFTER_NAME) && (state != ATTRIBUTES_VALUES) {
+				node.AddBooleanAttribute(name)
+				goto REWIND
 			}
 		case ATTRIBUTES_VALUES:
 			state = attributes_values(r, &value, func() { node.AddAttribute(name, value.String()) })
@@ -177,9 +217,10 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	case TEXT_OR_ATTRIBUTES, TEXT_NEW:
 		textNew()
 		node.text = value.String()
-	//case ATTRIBUTES, ATTRIBUTES_NAME, ATTRIBUTES_AFTER_NAME, ATTRIBUTES_VALUES:
+	case ATTRIBUTES_AFTER_NAME:
+		node.AddBooleanAttribute(name)
 	default:
-		return p.Err("implausible state!")
+		return p.Err(fmt.Sprintf("implausible state! (%s)", state.String()))
 	}
 	return
 }
@@ -200,21 +241,22 @@ func attributes_values(r rune, buf *bytes.Buffer, fillInValue func()) gstate {
 	}
 }
 
-func attributes_after_name(r rune, buf *bytes.Buffer) (gstate, error) {
+func attributes_after_name(r rune, buf *bytes.Buffer) gstate {
 	// this one is stupid.
 	switch r {
 	case ' ', '=': // <-- allows a ==    == = 'bla'
-		return ATTRIBUTES_AFTER_NAME, nil
+		return ATTRIBUTES_AFTER_NAME
 	case '\'', '"': // <-- allows a = 'Bla"
-		return ATTRIBUTES_VALUES, nil
+		return ATTRIBUTES_VALUES
+	// valueless attribute, start of next attr or )
 	default:
-		return ERR, fmt.Errorf("unquoted attribute values")
+		return ATTRIBUTES
 	}
 }
 
 func attributes_name(r rune, buf *bytes.Buffer) (gstate, string) {
 	switch r {
-	case ' ', '=':
+	case ' ', '=', ')':
 		name := buf.String()
 		buf.Reset()
 		return ATTRIBUTES_AFTER_NAME, name
