@@ -16,10 +16,10 @@ func (d DummyLoader) Load(id interface{}) (p *Parser, err error) {
 			return nil, fmt.Errorf("!? wrong string %s", str)
 		}
 		switch str {
-			case "included_sample":
-				p = NewParserString(included_sample)
-			case "included_sample2":
-				p = NewParserString(included_sample2)
+		case "included_sample":
+			p = NewParserString(included_sample)
+		case "included_sample2":
+			p = NewParserString(included_sample2)
 		}
 		return
 	}
@@ -164,9 +164,6 @@ const html8 = `<html>
 </html>
 `
 
-
-
-
 func testInclude(t *testing.T, in string, expected string) {
 	p := NewParserString(in)
 	var loader DummyLoader
@@ -187,15 +184,15 @@ func TestInclude(t *testing.T) {
 
 func TestFirstLineInclude(t *testing.T) {
 	testInclude(t, include_sample4, html_4)
-  testInclude(t, include_sample5, html_5)
+	testInclude(t, include_sample5, html_5)
 	testInclude(t, include_sample6, html_6)
-  testInclude(t, include_sample7, html_7)
-  testInclude(t, include_sample8, html8)
+	testInclude(t, include_sample7, html_7)
+	testInclude(t, include_sample8, html8)
 
 }
 
 func TestTest(t *testing.T) {
-  testInclude(t, include_sample5, html_5)
+	testInclude(t, include_sample5, html_5)
 }
 
 /// TEST with filesystem loader!

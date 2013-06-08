@@ -4,8 +4,6 @@ import (
 	"testing"
 )
 
-
-
 func test_compare(t *testing.T, is string, expected string) {
 	if is != expected {
 		t.Errorf("expected: %s, got: %s", expected, is)
@@ -102,15 +100,15 @@ const f_furthest_child = `
 `
 
 func TestFindFurthestChild(t *testing.T) {
- p := NewParserString(f_furthest_child)
- if err := p.Parse(); err != nil {
-	t.Errorf("unexpected error: %s", err)
- }
- node := p.rootNode.findFurthestChild()
- if (node.name != "h4") {
- println(node.name)
-	t.Fail()
- }
+	p := NewParserString(f_furthest_child)
+	if err := p.Parse(); err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	node := p.rootNode.findFurthestChild()
+	if node.name != "h4" {
+		println(node.name)
+		t.Fail()
+	}
 }
 
 //func TestNode(t * testing.T) {

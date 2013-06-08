@@ -13,9 +13,9 @@ package gaml
 // DOCTYPE nodes are only ever rendered to html5 (<!DOCTYPE html>)
 
 import (
+	"fmt"
 	"io"
 	"strings"
-	"fmt"
 )
 
 type nodeType int
@@ -43,8 +43,8 @@ type node struct {
 	nodeType   nodeType
 }
 
-func (n * node) String () string {
-	return fmt.Sprintf("name: >%s< text >%s< parent:>%s<", n.name, n.text, n.parent);
+func (n *node) String() string {
+	return fmt.Sprintf("name: >%s< text >%s< parent:>%s<", n.name, n.text, n.parent)
 }
 
 // creates a new node with the specified parent.
@@ -58,8 +58,8 @@ func newNode(parent *node) *node {
 	return n
 }
 
-func newRoot()(*node) {
-	return &node{nodeType:ROOT}
+func newRoot() *node {
+	return &node{nodeType: ROOT}
 }
 
 // Appends a new value to the list of attributes of this node.
@@ -82,8 +82,7 @@ func (n *node) addAttribute(name string, value interface{}) {
 	n.attributes[name] = append(n.attributes[name], value.(string))
 }
 
-
-func (n * node) findFurthestChild()(*node) {
+func (n *node) findFurthestChild() *node {
 	// if the line following an include node is indented, the
 	// final node of the include tree will serve as it's parent
 	// this func is to locate that node.
@@ -108,15 +107,15 @@ func (n * node) findFurthestChild()(*node) {
 
 func (n *node) addChild(child *node) {
 	switch {
-		case n.nodeType == TAG || n.nodeType == ROOT:
-			child.parent = n
-			n.children = append(n.children, child)
-		case n.nodeType == TXT:
-			n.parent.addChild(child)
-		case n.nodeType == INC:
-			n.findFurthestChild().addChild(child)
-		default:
-			// nutin.
+	case n.nodeType == TAG || n.nodeType == ROOT:
+		child.parent = n
+		n.children = append(n.children, child)
+	case n.nodeType == TXT:
+		n.parent.addChild(child)
+	case n.nodeType == INC:
+		n.findFurthestChild().addChild(child)
+	default:
+		// nutin.
 	}
 }
 
@@ -129,15 +128,15 @@ func (n *node) Render(writer io.Writer) {
 
 func (n *node) render(w io.Writer, indent int) {
 	switch {
-		case n.nodeType == DOCTYPE:
-			n.renderDocType(w)
-	  case n.name == "" && n.text == "":
-			// blank node (root, include)
-			n.renderChildren(w, indent)
-		case n.name != "":
-			n.renderTag(w, indent)
-		default:
-			n.renderText(w,indent)
+	case n.nodeType == DOCTYPE:
+		n.renderDocType(w)
+	case n.name == "" && n.text == "":
+		// blank node (root, include)
+		n.renderChildren(w, indent)
+	case n.name != "":
+		n.renderTag(w, indent)
+	default:
+		n.renderText(w, indent)
 	}
 }
 

@@ -78,7 +78,7 @@ func (p *Parser) parseInclude(name string) (err error) {
 	p2.Parse()
 
 	// currentNode will be an INC node representing the
-  // it's children are the results of the include parser.
+	// its children are the results of executing the include parser.
 	p.currentNode.children = p2.rootNode.children
 
 	return
