@@ -80,6 +80,24 @@ const html_3 = `<!DOCTYPE html>
 </html>
 `
 
+const include_sample4 = `
+> included_sample
+%whatever
+`
+
+const html_4 = `<footer>
+ This is a footer line.
+</footer>
+<whatever>
+</whatever>
+`
+
+//const include_sample5 = `
+//> included_sample
+//	%whatever
+//`
+
+
 func testInclude(t *testing.T, in string, expected string) {
 	p := NewParserString(in)
 	var loader DummyLoader
@@ -96,6 +114,12 @@ func TestInclude(t *testing.T) {
 	testInclude(t, include_sample, html_1)
 	testInclude(t, include_sample2, html_2)
 	testInclude(t, include_sample3, html_3)
+}
+
+func TestFirstLineInclude(t *testing.T) {
+	testInclude(t, include_sample4, html_4)
+//	testInclude(t, include_sample5, html_4)
+
 }
 
 /// TEST with filesystem loader!

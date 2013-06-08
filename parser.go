@@ -82,13 +82,27 @@ func (p *Parser) parseInclude(name string) (err error) {
 	// (the last child is the blank include node)
 
 	localcurrent := p.currentNode.parent
-	l := len(localcurrent.children)
-	localcurrent.children = localcurrent.children[0 : l-1]
 
-	for _, node := range p2.rootNodes {
-		localcurrent.addChild(node)
-		p.currentNode = node
+	// this whole thing needs to be rewritten to have a single
+	// blank root node.As is, if a template starts with an include,
+	// the (blank) current node won't have a parent and
+	// we need to rearange everything and urg... (see below)
+
+	if nil == localcurrent {
+		localcurrent = p.currentNode
+		p.rootNodes = p2.rootNodes
+		p.currentNode = p2.currentNode
+	} else {
+		l := len(localcurrent.children)
+		localcurrent.children = localcurrent.children[0 : l-1]
+		for _, node := range p2.rootNodes {
+			localcurrent.addChild(node)
+			p.currentNode = node
+		}
 	}
+
+
+
 	return
 }
 
