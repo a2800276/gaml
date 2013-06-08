@@ -100,8 +100,8 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	// `Parser` using the indentation.
 
 	if 0 == strings.Index(line, "!!!") {
-		node.text = "!!!" // not nice! "special" case ...
-		node.name = "!!!" // use text == name == "!!!" to signal doctype.
+		node.nodeType = DOCTYPE
+		return
 	}
 
 	// this will contain the generic "value" we are collecting. This
@@ -135,6 +135,7 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	// to swap things around ...
 	textNew := func() {
 		_node := newNode(node)
+		_node.nodeType = TXT
 		node = _node
 	}
 
@@ -148,7 +149,7 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	REWIND:
 		switch state {
 		case INITIAL:
-			state = initial(r, &value)
+			state = initial(r, node, &value)
 		case TAG_NAME:
 			prevStateBrace = state
 			state = tag(r, &value, fillInName, TAG_NAME)
@@ -315,17 +316,22 @@ func tag(r rune, buf *bytes.Buffer, fillInValue func(), state gstate) gstate {
 	}
 }
 
-func initial(r rune, buf *bytes.Buffer) gstate {
+func initial(r rune, node *node, buf *bytes.Buffer) gstate {
 	switch r {
 	case '%':
+		node.nodeType = TAG
 		return TAG_NAME
 	case '.':
+		node.nodeType = TAG
 		return CLASS
 	case '#':
+		node.nodeType = TAG
 		return ID
 	case '>':
+		node.nodeType = INC
 		return INCLUDE
 	default:
+		node.nodeType = TXT
 		buf.WriteRune(r)
 		return TEXT
 	}

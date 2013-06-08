@@ -21,7 +21,7 @@ func NewRenderer(p *Parser) (r Renderer, err error) {
 	if err = p.Parse(); err != nil {
 		return
 	}
-	return Renderer{p.rootNodes}, nil
+	return Renderer{p.rootNode.children}, nil
 }
 
 func (r *Renderer) ToHtml(writer io.Writer) {

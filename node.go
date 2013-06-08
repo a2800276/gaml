@@ -15,6 +15,18 @@ package gaml
 import (
 	"io"
 	"strings"
+	"fmt"
+)
+
+type nodeType int
+
+const (
+	UNKNOWN nodeType = iota
+	DOCTYPE
+	TAG
+	TXT
+	ROOT
+	INC
 )
 
 //http://www.w3.org/TR/html5/syntax.html#void-elements
@@ -28,9 +40,14 @@ type node struct {
 	name       string              // name of tags if this is a tag
 	attributes map[string][]string // attributes if tag
 	text       string              // text if this is a text node.
+	nodeType   nodeType
 
 	// SPECIAL TREAT !!!
 	// if `node` represents a DOCTYPE node (!!!), `name` == `text` == "!!!"
+}
+
+func (n * node) String () string {
+	return fmt.Sprintf("name: >%s< text >%s< parent:>%s<", n.name, n.text, n.parent);
 }
 
 // creates a new node with the specified parent.
@@ -65,9 +82,27 @@ func (n *node) addAttribute(name string, value interface{}) {
 	n.attributes[name] = append(n.attributes[name], value.(string))
 }
 
+
+func (n * node) findFurthestChild()(*node) {
+	if 0 == len(n.children) {
+		return n
+	} else {
+		return n.children[len(n.children)-1]
+	}
+}
+
 func (n *node) addChild(child *node) {
-	child.parent = n
-	n.children = append(n.children, child)
+	switch {
+		case n.nodeType == TAG || n.nodeType == ROOT:
+			child.parent = n
+			n.children = append(n.children, child)
+		case n.nodeType == TXT:
+			n.parent.addChild(child)
+		case n.nodeType == INC:
+			n.findFurthestChild().addChild(child)
+		default:
+			// nutin.
+	}
 }
 
 // Write an html representation of this node to the specified `Writer`
@@ -78,12 +113,16 @@ func (n *node) Render(writer io.Writer) {
 }
 
 func (n *node) render(w io.Writer, indent int) {
-	if n.name == n.text && n.text == "!!!" {
-		n.renderDocType(w)
-	} else if n.name != "" {
-		n.renderTag(w, indent)
-	} else {
-		n.renderText(w, indent)
+	switch {
+		case n.nodeType == DOCTYPE:
+			n.renderDocType(w)
+	  case n.name == "" && n.text == "":
+			// blank node (root, include)
+			n.renderChildren(w, indent)
+		case n.name != "":
+			n.renderTag(w, indent)
+		default:
+			n.renderText(w,indent)
 	}
 }
 
@@ -111,15 +150,18 @@ func (n *node) renderTag(w io.Writer, indent int) {
 	if n.isVoid() {
 		return
 	}
-
-	for _, child := range n.children {
-		child.render(w, indent+1)
-	}
+	n.renderChildren(w, indent+1)
 
 	indentfunc()
 	io.WriteString(w, "</")
 	io.WriteString(w, n.name)
 	io.WriteString(w, ">\n") // what to do about the trailing \n !?
+}
+
+func (n *node) renderChildren(w io.Writer, indent int) {
+	for _, child := range n.children {
+		child.render(w, indent)
+	}
 }
 
 func (n *node) isVoid() bool {

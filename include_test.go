@@ -12,10 +12,15 @@ func (d DummyLoader) Load(id interface{}) (p *Parser, err error) {
 	if str, ok := id.(string); !ok {
 		return nil, fmt.Errorf("!? not a string")
 	} else {
-		if str != "included_sample" {
+		if str != "included_sample" && str != "included_sample2" {
 			return nil, fmt.Errorf("!? wrong string %s", str)
 		}
-		p = NewParserString(included_sample)
+		switch str {
+			case "included_sample":
+				p = NewParserString(included_sample)
+			case "included_sample2":
+				p = NewParserString(included_sample2)
+		}
 		return
 	}
 
@@ -92,10 +97,74 @@ const html_4 = `<footer>
 </whatever>
 `
 
-//const include_sample5 = `
-//> included_sample
-//	%whatever
-//`
+const include_sample5 = `
+> included_sample
+	%whatever
+`
+
+const html_5 = `<footer>
+ This is a footer line.
+ <whatever>
+ </whatever>
+</footer>
+`
+const included_sample2 = `
+%h1
+	%h2
+		%h3
+			%h4
+`
+const include_sample6 = `
+> included_sample2
+%whatever
+`
+
+const html_6 = `<h1>
+ <h2>
+  <h3>
+   <h4>
+   </h4>
+  </h3>
+ </h2>
+</h1>
+<whatever>
+</whatever>
+`
+const include_sample7 = `
+> included_sample2
+	%whatever
+`
+const html_7 = `<h1>
+ <h2>
+  <h3>
+   <h4>
+    <whatever>
+    </whatever>
+   </h4>
+  </h3>
+ </h2>
+</h1>
+`
+const include_sample8 = `
+%html
+	> included_sample2
+	%whatever
+`
+const html8 = `<html>
+ <h1>
+  <h2>
+   <h3>
+    <h4>
+    </h4>
+   </h3>
+  </h2>
+ </h1>
+ <whatever>
+ </whatever>
+</html>
+`
+
+
 
 
 func testInclude(t *testing.T, in string, expected string) {
@@ -118,8 +187,15 @@ func TestInclude(t *testing.T) {
 
 func TestFirstLineInclude(t *testing.T) {
 	testInclude(t, include_sample4, html_4)
-//	testInclude(t, include_sample5, html_4)
+  testInclude(t, include_sample5, html_5)
+	testInclude(t, include_sample6, html_6)
+  testInclude(t, include_sample7, html_7)
+  testInclude(t, include_sample8, html8)
 
+}
+
+func TestTest(t *testing.T) {
+  testInclude(t, include_sample5, html_5)
 }
 
 /// TEST with filesystem loader!
