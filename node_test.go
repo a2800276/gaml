@@ -94,6 +94,25 @@ func TestBlank(t *testing.T) {
 	test_simple(t, blank_line, blank_expected)
 }
 
+const f_furthest_child = `
+%h1
+	%h2
+		%h3
+			%h4
+`
+
+func TestFindFurthestChild(t *testing.T) {
+ p := NewParserString(f_furthest_child)
+ if err := p.Parse(); err != nil {
+	t.Errorf("unexpected error: %s", err)
+ }
+ node := p.rootNode.findFurthestChild()
+ if (node.name != "h4") {
+ println(node.name)
+	t.Fail()
+ }
+}
+
 //func TestNode(t * testing.T) {
 //  buf := bytes.NewBufferString("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
 //  parser := NewParser(buf)

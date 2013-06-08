@@ -22,10 +22,8 @@ type Parser struct {
 	prevIndent    int      // previous indent
 	indentType    iType    // using tabs or space, determined by first line, mixing is not allowed
 	indentSpaces  int      // how many space == one indention level, determined by usage on first indented line
-	//rootNodes     []*node  // the result of parsing
 	rootNode      *node    // "blank" root node of document that everything is attached to
 	currentNode   *node    // keeps track of the current position while parsing
-	includeNode   *node    // 
 	done          bool     // done parsing?
 	err           error    // cache error which may have occured during parsing
 	IncludeLoader Loader
@@ -41,8 +39,7 @@ const (
 func NewParser(reader io.Reader) (parser *Parser) {
 	parser = new(Parser)
 	parser.scanner = bufio.NewScanner(reader)
-	parser.rootNode = newNode(nil)
-	parser.rootNode.nodeType = ROOT
+	parser.rootNode = newRoot()
 	parser.currentNode = parser.rootNode
 	return
 }
@@ -80,39 +77,9 @@ func (p *Parser) parseInclude(name string) (err error) {
 	}
 	p2.Parse()
 
-//	// currentNode will be a blank node representing the
-//	// include line, this needs to be replaced by its parent.
-//	// finally, the last child element needs to be removed
-//	// (the last child is the blank include node)
-//
-//	localcurrent := p.currentNode.parent
-//
-//
-//
-//		l := len(localcurrent.children)
-//		localcurrent.children = localcurrent.children[0 : l-1]
-//		for _, node := range p2.rootNode.children {
-//			localcurrent.addChild(node)
-//		}
-//		p.currentNode = p2.currentNode
-
+	// currentNode will be an INC node representing the
+  // it's children are the results of the include parser.
 	p.currentNode.children = p2.rootNode.children
-	p.includeNode          = p2.currentNode //*
-println(p.includeNode.String())
-
-	// *) in case the the line AFTER the include:
-	//
-	// > include
-	//   %this_one
-	//
-	// is indented, current node needs to be the final node of
-	// the included node-tree, this could be several levels
-	// down the tree
-	//
-	// if the line after the include is indented on the same level
-	// they are siblings and everything is fine. Unfortunately,
-	// we won't know until we reach the next line. So I'm
-	// storing the final node of the included tree in `includeNode`
 
 	return
 }
@@ -144,18 +111,13 @@ func (p *Parser) setCurrentNode() error {
 	//   %p    <-4
 	switch {
 	case p.indent == 0: // case #1
-		p.currentNode = newNode(nil)
-		p.rootNode.addChild(p.currentNode)
-		//p.rootNodes = append(p.rootNodes, p.currentNode)
+		p.currentNode = newNode(p.rootNode)
 	case p.indent > p.prevIndent: // case #2
 		if p.indent-p.prevIndent > 1 {
 			return p.Err("indention level increase by more than one")
 		}
-		if nil != p.includeNode {
-			p.currentNode = newNode(p.includeNode)
-		} else {
-		  p.currentNode = newNode(p.currentNode)
-		}
+		p.currentNode = newNode(p.currentNode)
+
 	// case p.indent == p.prevIndent:   // case #3
 	//  p.currentNode = newNode(p.currentNode.parent)
 
@@ -166,7 +128,6 @@ func (p *Parser) setCurrentNode() error {
 		}
 		p.currentNode = newNode(parent)
 	}
-	p.includeNode = nil
 	return nil
 }
 

@@ -41,9 +41,6 @@ type node struct {
 	attributes map[string][]string // attributes if tag
 	text       string              // text if this is a text node.
 	nodeType   nodeType
-
-	// SPECIAL TREAT !!!
-	// if `node` represents a DOCTYPE node (!!!), `name` == `text` == "!!!"
 }
 
 func (n * node) String () string {
@@ -55,11 +52,14 @@ func (n * node) String () string {
 // adds the newly created node as a child of the parent.
 func newNode(parent *node) *node {
 	n := new(node)
-	n.parent = parent
 	if parent != nil {
-		parent.children = append(parent.children, n)
+		parent.addChild(n)
 	}
 	return n
+}
+
+func newRoot()(*node) {
+	return &node{nodeType:ROOT}
 }
 
 // Appends a new value to the list of attributes of this node.
@@ -84,10 +84,25 @@ func (n *node) addAttribute(name string, value interface{}) {
 
 
 func (n * node) findFurthestChild()(*node) {
+	// if the line following an include node is indented, the
+	// final node of the include tree will serve as it's parent
+	// this func is to locate that node.
+	//
+	// i.e.
+	//     > head.gaml
+	//       %h1 hello
+	//
+	// head.gaml contains:
+	//    !!!
+	//    html
+	//      head
+	//      body
+	//
+	// in the resulting html, <h1>hello</h1> should be a child of body.
 	if 0 == len(n.children) {
 		return n
 	} else {
-		return n.children[len(n.children)-1]
+		return n.children[len(n.children)-1].findFurthestChild()
 	}
 }
 
