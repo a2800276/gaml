@@ -84,6 +84,11 @@ func TestVoidElement(t *testing.T) {
 	test_simple(t, "%img#test_image.img_class(src='test.png')", "<img id='test_image' class='img_class' src='test.png'>\n")
 }
 
+func TestQuote(t *testing.T) {
+	test_simple(t, "%body(onload='alert(\"hello\")')", "<body onload='alert(\"hello\")'>\n</body>\n")
+	//test_simple(t, "%body(onload=\"alert('hello')\")", "<body onload="alert(\"hello\")'>\n</body>\n")
+}
+
 const blank_line = `
 %html
 	%head

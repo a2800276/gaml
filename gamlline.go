@@ -234,7 +234,8 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 
 func attributes_values(r rune, buf *bytes.Buffer, fillInValue func()) gstate {
 	switch r {
-	case '"', '\'':
+	//case '"', '\'':
+	case '\'':
 		fillInValue()
 		buf.Reset()
 		return ATTRIBUTES
@@ -249,7 +250,8 @@ func attributes_after_name(r rune, buf *bytes.Buffer) gstate {
 	switch r {
 	case ' ', '=': // <-- allows a ==    == = 'bla'
 		return ATTRIBUTES_AFTER_NAME
-	case '\'', '"': // <-- allows a = 'Bla"
+	//case '\'', '"': // <-- allows a = 'Bla"
+	case '\'': // <-- allows only a = 'Bla'
 		return ATTRIBUTES_VALUES
 	// valueless attribute, start of next attr or )
 	default:
