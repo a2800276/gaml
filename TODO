@@ -5,8 +5,7 @@ rendering option:
   quoting, escaping
 
 
-http handler
 
 interface work, much better template integration
 
-> includes (can be handled through go templates ...)
+rewrite statemachine
