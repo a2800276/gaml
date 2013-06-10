@@ -11,8 +11,8 @@ func TestStrip(t *testing.T) {
 	if parser.line != "  bla  " {
 		t.Error("stripLine changed line")
 	}
-	if parser.strippedLine != "bla" {
-		t.Errorf("expected: bla got: %s", parser.strippedLine)
+	if parser.gamlline.line != "bla" {
+		t.Errorf("expected: bla got: %s", parser.gamlline.line)
 	}
 
 	parser.line = "  bla  // bla bla"
@@ -20,7 +20,7 @@ func TestStrip(t *testing.T) {
 	if parser.line != "  bla  // bla bla" {
 		t.Error("stripLine changed line")
 	}
-	if parser.strippedLine != "bla" {
-		t.Errorf("expected: bla got: %s", parser.strippedLine)
+	if parser.gamlline.line != "bla" {
+		t.Errorf("expected: bla got: %s", parser.gamlline.line)
 	}
 }

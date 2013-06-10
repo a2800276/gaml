@@ -16,7 +16,7 @@ import (
 type Parser struct {
 	scanner       *bufio.Scanner
 	line          string   // content of current line sans line ending
-	strippedLine  gamlline // line with no comment or surrounding ws
+	gamlline      gamlline // line with no comment or surrounding ws
 	lineNo        int      // current line number
 	indent        int      // current indention level
 	prevIndent    int      // previous indent
@@ -88,12 +88,12 @@ func (p *Parser) handleLine() (err error) {
 
 	p.stripLine()
 
-	if !p.strippedLine.Empty() {
+	if !p.gamlline.Empty() {
 		if err = p.handleIndent(); err != nil {
 			return
 		}
 		p.setCurrentNode()
-		if err = p.strippedLine.processIntoCurrentNode(p); err != nil {
+		if err = p.gamlline.processIntoCurrentNode(p); err != nil {
 			return err
 		}
 	}
@@ -138,7 +138,8 @@ func (p *Parser) stripLine() {
 	if commentStart := strings.Index(p.line, "//"); commentStart != -1 {
 		stripped = p.line[:commentStart]
 	}
-	p.strippedLine = (gamlline)(strings.TrimSpace(stripped))
+	//p.strippedLine = (gamlline)(strings.TrimSpace(stripped))
+	p.gamlline = GamlLineFromString(strings.TrimSpace(stripped))
 }
 
 func (p *Parser) handleIndent() (err error) {

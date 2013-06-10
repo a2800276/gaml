@@ -16,13 +16,13 @@ package gaml
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"strings"
 )
 
-type gamlline string
-
 type gstate int
+
+type stateFunc func(*gamlline, rune)(stateFunc)
 
 const (
 	INITIAL gstate = iota
@@ -42,6 +42,283 @@ const (
 	ATTRIBUTES_VALUES
 	ERR
 )
+type gamlline struct {
+	line string
+	node *node
+	value bytes.Buffer
+	attr_name string
+	stateFunc stateFunc
+	prevStateBrace gstate
+}
+
+
+func GamlLineFromString(s string)gamlline {
+	g := gamlline{line: s}
+	g.stateFunc = (*gamlline).initial
+	g.prevStateBrace = ERR
+	return g
+}
+
+
+
+
+// let `parser` determine whether it can skip this line.
+func (g *gamlline) Empty() bool {
+	return g.line == ""
+}
+
+
+// this is where the magic happens...
+func (g *gamlline) processIntoCurrentNode(p *Parser) (err error) {
+	// node is the current node that we will be filling with content.
+	// it's place in the hierarchy of nodes has been determined by
+	// `Parser` using the indentation.
+	g.node = p.currentNode
+
+	if 0 == strings.Index(g.line, "!!!") {
+		g.node.nodeType = DOCTYPE
+		return
+	}
+
+	for _, r := range g.line {
+	println(g)
+		g.stateFunc = g.stateFunc(g,r)
+	}
+	return
+}
+
+func (g *gamlline) initial (r rune) stateFunc {
+	println(g)
+	switch r {
+  case '%':
+		g.node.nodeType = TAG
+		return (*gamlline).tagName
+  case '.':
+		g.node.nodeType = TAG
+		return (*gamlline).class
+  case '#':
+		g.node.nodeType = TAG
+		return (*gamlline).id
+  case '>':
+		g.node.nodeType = INC
+		return (*gamlline).include
+	default:
+		g.node.nodeType = TXT
+		g.value.WriteRune(r)
+		return (*gamlline).text
+	}
+}
+
+func (g *gamlline) tagName (r rune) stateFunc {
+	switch r {
+	case '.':
+		g.fillInName()
+		return (*gamlline).class
+	case '#':
+		g.fillInName()
+		return (*gamlline).id
+	case ' ':
+		g.fillInName()
+		g.value.WriteRune(r)
+		return (*gamlline).textOrAttribute
+	case '(':
+		g.fillInName()
+		return (*gamlline).attributes
+	case '{':
+		g.value.WriteRune(r)
+		return (*gamlline).openBrace(g, (*gamlline).tagName)
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).tagName
+	}
+}
+func (g *gamlline) class (r rune) stateFunc {
+	switch r {
+	case '.':
+		g.fillInDivClass()
+		return (*gamlline).class
+	case '#':
+		g.fillInDivClass()
+		return (*gamlline).id
+	case ' ':
+		g.fillInDivClass()
+		g.value.WriteRune(r)
+		return (*gamlline).textOrAttribute
+	case '(':
+		g.fillInDivClass()
+		return (*gamlline).attributes
+	case '{':
+		g.value.WriteRune(r)
+		return (*gamlline).openBrace(g, (*gamlline).class)
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).class
+	}
+}
+func (g *gamlline) id (r rune) stateFunc {
+	switch r {
+	case '.':
+		g.fillInDivId()
+		return (*gamlline).class
+	case '#':
+		g.fillInDivId()
+		return (*gamlline).id
+	case ' ':
+		g.fillInDivId()
+		g.value.WriteRune(r)
+		return (*gamlline).textOrAttribute
+	case '(':
+		g.fillInDivId()
+		return (*gamlline).attributes
+	case '{':
+		g.value.WriteRune(r)
+		return (*gamlline).openBrace(g, (*gamlline).id)
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).id
+	}
+}
+func (g *gamlline) include (r rune) stateFunc {
+	g.value.WriteRune(r)
+	return (*gamlline).include
+}
+func (g *gamlline) text (r rune) stateFunc {
+	g.value.WriteRune(r)
+	return (*gamlline).text
+}
+func (g *gamlline) textOrAttribute (r rune) stateFunc {
+	switch r {
+	case ' ':
+		g.value.WriteRune(r)
+		return (*gamlline).textOrAttribute
+	case '(':
+		g.value.Reset()
+		return (*gamlline).attributes
+	default: // default in all of these state functions is not correct, catch all sort of unicode crap people may throw at us ...
+		g.value.WriteRune(r)
+		return (*gamlline).textNew
+	}
+}
+func (g *gamlline) textNew (r rune) stateFunc {
+	node := newNode(g.node)
+	node.nodeType = TXT
+	g.node = node
+	g.value.WriteRune(r)
+	return (*gamlline).text
+}
+func (g *gamlline) attributes (r rune) stateFunc {
+	switch r {
+	case ' ':
+		return (*gamlline).attributes
+	case ')':
+		return (*gamlline).textNew
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).attributesName
+	}
+}
+
+func (g *gamlline) attributesName (r rune) stateFunc {
+	switch r {
+	case ' ', '=':
+		g.attr_name = g.value.String()
+		g.value.Reset()
+		return (*gamlline).attributesAfterName
+	case ')':
+		g.node.AddBooleanAttribute(g.value.String())
+		g.value.Reset()
+		return (*gamlline).textNew
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).attributesName
+	}
+}
+func (g *gamlline) attributesAfterName (r rune) stateFunc {
+	// this one is stupid.
+	switch r {
+	case ' ', '=': // <-- allows a ==    == = 'bla'
+		return (*gamlline).attributesAfterName
+	//case '\'', '"': // <-- allows a = 'Bla"
+	case '\'': // <-- allows only a = 'Bla'
+		return (*gamlline).attributesValues
+	// valueless attribute, start of next attr or )
+	default:
+		g.node.AddBooleanAttribute(g.value.String())
+		g.value.Reset()
+		return (*gamlline).attributes(g,r)
+	}
+}
+
+func (g *gamlline) attributesValues (r rune) stateFunc {
+	switch r {
+	//case '"', '\'':
+	case '\'':
+		g.node.AddAttribute(g.attr_name, g.value.String())
+		g.value.Reset()
+		return (*gamlline).attributes
+	default:
+		g.value.WriteRune(r)
+		return (*gamlline).attributesValues
+	}
+}
+func (g *gamlline) openBrace (s stateFunc) stateFunc {
+	return func(g *gamlline, r rune)(stateFunc) {
+		switch r {
+		case '{': // second {, collect literally
+			g.value.WriteRune(r)
+			return (*gamlline).passLiteral(g,s)
+		default:
+			return s(g,r)
+		}
+	}
+}
+
+
+func (g *gamlline) passLiteral (s stateFunc) stateFunc {
+	return func(g *gamlline, r rune)(stateFunc) {
+		g.value.WriteRune(r)
+		switch r {
+		case '}':
+			return (*gamlline).closeBrace(g,s)
+		default:
+			return (*gamlline).passLiteral(g,s)
+		}
+	}
+}
+func (g *gamlline) closeBrace (s stateFunc) stateFunc {
+	return func(g *gamlline, r rune)(stateFunc) {
+		g.value.WriteRune(r)
+		switch r {
+		case '}':
+			return s
+		default:
+			return (*gamlline).passLiteral(g,s)
+		}
+	}
+}
+
+
+
+func (g *gamlline) fillInName() {
+	g.node.name = g.value.String()
+	g.value.Reset()
+}
+
+func (g *gamlline) fillInDivClass() {
+	if g.node.name == "" {
+		g.node.name = "div"
+	}
+	g.node.AddAttribute("class", g.value.String())
+	g.value.Reset()
+}
+func (g *gamlline) fillInDivId() {
+	if g.node.name == "" {
+		g.node.name = "div"
+	}
+	g.node.AddAttribute("id", g.value.String())
+	g.value.Reset()
+}
+
 
 func (s gstate) String() string {
 	switch s {
@@ -82,318 +359,3 @@ func (s gstate) String() string {
 	}
 }
 
-// let `parser` determine whether it can skip this line.
-func (g gamlline) Empty() bool {
-	return string(g) == ""
-}
-
-// this is where the magic happens...
-func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
-	// utility/help : a string typedef means we can no longer create
-	// slices using [:]. `line` is here to avoid having to cast all the
-	// time.
-	line := string(g)
-
-	node := p.currentNode
-	// node is the current node that we will be filling with content.
-	// it's place in the hierarchy of nodes has been determined by
-	// `Parser` using the indentation.
-
-	if 0 == strings.Index(line, "!!!") {
-		node.nodeType = DOCTYPE
-		return
-	}
-
-	// this will contain the generic "value" we are collecting. This
-	// could contain any number of things in the course of parsing a
-	// line: the tag name, attribute name/values or text.
-	var value bytes.Buffer
-
-	fillInName := func() {
-		node.name = value.String()
-		value.Reset()
-	}
-
-	// some callback functions just to keep things confusing!
-	add := func(attrN string) func() {
-		return func() {
-			if node.name == "" {
-				node.name = "div"
-			}
-			node.AddAttribute(attrN, value.String())
-			value.Reset()
-		}
-	}
-
-	addClass := add("class")
-	addId := add("id")
-
-	// TEXT_NEW is a state that's reached for nodes that have a tag AND text
-	// on the same line:
-	// %h1 HEADING!
-	// technically, the text node is a child of the tag node so we need
-	// to swap things around ...
-	textNew := func() {
-		_node := newNode(node)
-		_node.nodeType = TXT
-		node = _node
-	}
-
-	// state machine starts here.
-	state := INITIAL
-	prevStateBrace := ERR
-
-	var name string // remember name of name = attribute pairs
-
-	for _, r := range line {
-	REWIND:
-		switch state {
-		case INITIAL:
-			state = initial(r, node, &value)
-		case TAG_NAME:
-			prevStateBrace = state
-			state = tag(r, &value, fillInName, TAG_NAME)
-		case CLASS:
-			prevStateBrace = state
-			state = tag(r, &value, addClass, CLASS)
-		case ID:
-			prevStateBrace = state
-			state = tag(r, &value, addId, ID)
-		case OPEN_BRACE:
-			state = openBrace(r, &value, prevStateBrace)
-			if state != PASS_LITERAL {
-				goto REWIND
-			}
-		case PASS_LITERAL:
-			state = passLiteral(r, &value)
-		case CLOSE_BRACE:
-			state = closeBrace(r, &value, prevStateBrace)
-		case INCLUDE:
-			// ignore for now ... ?
-			//node.text = "<!-- include not handled -->"
-			//return nil
-			value.WriteRune(r)
-		case TEXT:
-			value.WriteRune(r)
-		case TEXT_OR_ATTRIBUTES:
-			// once the tag part of the node is through and we encounter
-			// whitespace, it's not yet known whether attributes (a = 'b')
-			// will follow or text.
-			state = textOrAttribute(r, &value)
-		case TEXT_NEW:
-			textNew()
-			value.WriteRune(r)
-			state = TEXT
-		case ATTRIBUTES:
-			state = attributes(r, &value)
-		case ATTRIBUTES_NAME:
-			if state, name = attributes_name(r, &value); state == TEXT_NEW {
-				node.AddBooleanAttribute(name)
-			}
-		case ATTRIBUTES_AFTER_NAME:
-			if state = attributes_after_name(r, &value); (state != ATTRIBUTES_AFTER_NAME) && (state != ATTRIBUTES_VALUES) {
-				node.AddBooleanAttribute(name)
-				goto REWIND
-			}
-		case ATTRIBUTES_VALUES:
-			state = attributes_values(r, &value, func() { node.AddAttribute(name, value.String()) })
-		}
-	}
-
-	// stow away the value we have been collecting once we've
-	// passed through the entire string. Go's bufio.Scanner throws out
-	// the trailing \n, \r\n so the for loop above won't be called after
-	// the last char, we need to clean up depending on which state we're in.
-	switch state {
-	case INITIAL:
-		return p.Err("impossible state! (really: can't happen)")
-	case TAG_NAME:
-		fillInName()
-	case CLASS:
-		addClass()
-	case ID:
-		addId()
-	case INCLUDE:
-		err = p.parseInclude(value.String())
-	case TEXT:
-		node.text = value.String()
-	case TEXT_OR_ATTRIBUTES, TEXT_NEW:
-		textNew()
-		node.text = value.String()
-	case ATTRIBUTES_AFTER_NAME:
-		node.AddBooleanAttribute(name)
-	default:
-		return p.Err(fmt.Sprintf("implausible state! (%s)", state.String()))
-	}
-	return
-}
-
-// below are the state functions, more or less one per state.
-// typically they return the subsequent state, but sometimes it was necessary to
-// cheat.
-
-func attributes_values(r rune, buf *bytes.Buffer, fillInValue func()) gstate {
-	switch r {
-	//case '"', '\'':
-	case '\'':
-		fillInValue()
-		buf.Reset()
-		return ATTRIBUTES
-	default:
-		buf.WriteRune(r)
-		return ATTRIBUTES_VALUES
-	}
-}
-
-func attributes_after_name(r rune, buf *bytes.Buffer) gstate {
-	// this one is stupid.
-	switch r {
-	case ' ', '=': // <-- allows a ==    == = 'bla'
-		return ATTRIBUTES_AFTER_NAME
-	//case '\'', '"': // <-- allows a = 'Bla"
-	case '\'': // <-- allows only a = 'Bla'
-		return ATTRIBUTES_VALUES
-	// valueless attribute, start of next attr or )
-	default:
-		return ATTRIBUTES
-	}
-}
-
-func attributes_name(r rune, buf *bytes.Buffer) (gstate, string) {
-	switch r {
-	case ' ', '=':
-		name := buf.String()
-		buf.Reset()
-		return ATTRIBUTES_AFTER_NAME, name
-	case ')':
-		name := buf.String()
-		buf.Reset()
-		return TEXT_NEW, name
-	default:
-		buf.WriteRune(r)
-		return ATTRIBUTES_NAME, ""
-	}
-}
-func attributes(r rune, buf *bytes.Buffer) gstate {
-	switch r {
-	case ' ':
-		return ATTRIBUTES
-	case ')':
-		return TEXT_NEW
-	default:
-		buf.WriteRune(r)
-		return ATTRIBUTES_NAME
-	}
-}
-
-func textOrAttribute(r rune, buf *bytes.Buffer) gstate {
-	switch r {
-	case ' ':
-		buf.WriteRune(r)
-		return TEXT_OR_ATTRIBUTES
-	case '(':
-		buf.Reset()
-		return ATTRIBUTES
-	default: // default in all of these state functions is not correct, catch all sort of unicode crap people may throw at us ...
-		buf.WriteRune(r)
-		return TEXT_NEW
-	}
-}
-
-func tag(r rune, buf *bytes.Buffer, fillInValue func(), state gstate) gstate {
-	switch r {
-	case '.':
-		fillInValue()
-		return CLASS
-	case '#':
-		fillInValue()
-		return ID
-	case ' ':
-		fillInValue()
-		buf.WriteRune(r)
-		return TEXT_OR_ATTRIBUTES
-	case '(':
-		fillInValue()
-		return ATTRIBUTES
-	case '{':
-		buf.WriteRune(r)
-		return OPEN_BRACE
-	default:
-		buf.WriteRune(r)
-		return state
-	}
-}
-
-func initial(r rune, node *node, buf *bytes.Buffer) gstate {
-	switch r {
-	case '%':
-		node.nodeType = TAG
-		return TAG_NAME
-	case '.':
-		node.nodeType = TAG
-		return CLASS
-	case '#':
-		node.nodeType = TAG
-		return ID
-	case '>':
-		node.nodeType = INC
-		return INCLUDE
-	default:
-		node.nodeType = TXT
-		buf.WriteRune(r)
-		return TEXT
-	}
-}
-
-// the final three functions handle go template style braces.
-// since '.' tends to come up in go templates quite a lot
-// and -on the other hand- has a special meaning in html/g(h)aml
-// it require special handling.
-// In other cases there is no escaping of ' " . # %
-// A dot (.) simply can't be part of a tag name, id or class (*)
-// BUT, consider the following:
-//
-//    %tag#{{.calculated_id}}
-//
-// This would result in
-//
-//    <tag id="{{" class="calculated_id}}"> ...
-//
-// So anything following an opening {{ up until }} is passed through.
-// we do need to keep track of the state we were previously in,
-// though (TAG, CLASS, ID) to return to it after handling {{}}.
-//
-// (*) dot (.) can be part of an id or class name if they aren't
-// defined in shortcut notation, i.e.:
-//
-//    %tag(id=".")
-//
-func openBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
-	switch r {
-	case '{': // second {, collect literally
-		buf.WriteRune(r)
-		return PASS_LITERAL
-	default:
-		return prev_state
-	}
-}
-func passLiteral(r rune, buf *bytes.Buffer) gstate {
-	buf.WriteRune(r)
-	switch r {
-	case '}':
-		return CLOSE_BRACE
-	default:
-		return PASS_LITERAL
-	}
-}
-
-func closeBrace(r rune, buf *bytes.Buffer, prev_state gstate) gstate {
-	buf.WriteRune(r)
-	// r was either a second }, so we're back out of the {{ }} block
-	switch r {
-	case '}':
-		return prev_state
-	default:
-		return PASS_LITERAL
-	}
-}
