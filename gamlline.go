@@ -187,7 +187,9 @@ func (g gamlline) processIntoCurrentNode(p *Parser) (err error) {
 		case ATTRIBUTES:
 			state = attributes(r, &value)
 		case ATTRIBUTES_NAME:
-			state, name = attributes_name(r, &value)
+			if state, name = attributes_name(r, &value); state == TEXT_NEW {
+				node.AddBooleanAttribute(name)
+			}
 		case ATTRIBUTES_AFTER_NAME:
 			if state = attributes_after_name(r, &value); (state != ATTRIBUTES_AFTER_NAME) && (state != ATTRIBUTES_VALUES) {
 				node.AddBooleanAttribute(name)
@@ -257,10 +259,14 @@ func attributes_after_name(r rune, buf *bytes.Buffer) gstate {
 
 func attributes_name(r rune, buf *bytes.Buffer) (gstate, string) {
 	switch r {
-	case ' ', '=', ')':
+	case ' ', '=':
 		name := buf.String()
 		buf.Reset()
 		return ATTRIBUTES_AFTER_NAME, name
+	case ')':
+		name := buf.String()
+		buf.Reset()
+		return TEXT_NEW, name
 	default:
 		buf.WriteRune(r)
 		return ATTRIBUTES_NAME, ""
@@ -271,7 +277,7 @@ func attributes(r rune, buf *bytes.Buffer) gstate {
 	case ' ':
 		return ATTRIBUTES
 	case ')':
-		return TEXT
+		return TEXT_NEW
 	default:
 		buf.WriteRune(r)
 		return ATTRIBUTES_NAME

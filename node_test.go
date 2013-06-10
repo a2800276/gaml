@@ -43,7 +43,7 @@ func TestAttributeNoValue(t *testing.T) {
 }
 func TestAttributes(t *testing.T) {
 	test_simple(t, "%a#bla.blub(ding='dong' ping='pong pung') hello world!",
-		"<a id='bla' class='blub' ding='dong' ping='pong pung'>\n</a>\n")
+		"<a id='bla' class='blub' ding='dong' ping='pong pung'>\n  hello world!\n</a>\n")
 }
 
 func TestDoctype(t *testing.T) {
@@ -67,7 +67,17 @@ func TestSpecialInQuotesFail(t *testing.T) {
 	} else if err.Error() != "implausible state! (PASS_LITERAL) line(1):%a.{{.something or the other" {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
+}
 
+func TestTextOnSameLine(t *testing.T) {
+	test_simple(t, "%bla Bla", "<bla>\n  Bla\n</bla>\n")
+	test_simple(t, "%bla(something) Bla", "<bla something>\n  Bla\n</bla>\n")
+	test_simple(t, "%bla(something='something else') Bla", "<bla something='something else'>\n  Bla\n</bla>\n")
+}
+
+func TestBooleanAttribute(t *testing.T) {
+	test_simple(t, "%bla(bool)", "<bla bool>\n</bla>\n")
+	test_simple(t, "%bla(bool) Just Testin'", "<bla bool>\n  Just Testin'\n</bla>\n")
 }
 func TestVoidElement(t *testing.T) {
 	test_simple(t, "%br", "<br>\n")
