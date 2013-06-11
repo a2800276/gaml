@@ -292,9 +292,9 @@ func (g *gamlline) passLiteral(s stateFunc) stateFunc {
 		case END:
 			return nil
 		case '}':
-			return (*gamlline).closeBrace(g, s)
+			return g.closeBrace(s)
 		default:
-			return (*gamlline).passLiteral(g, s)
+			return g.passLiteral(s)
 		}
 	}
 }
@@ -307,7 +307,7 @@ func (g *gamlline) closeBrace(s stateFunc) stateFunc {
 		case '}':
 			return s
 		default:
-			return (*gamlline).passLiteral(g, s)
+			return g.passLiteral(s)
 		}
 	}
 }
