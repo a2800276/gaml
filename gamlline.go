@@ -97,6 +97,23 @@ func (g *gamlline) initial(r rune) stateFunc {
 		return g.text
 	}
 }
+
+// handle three similiar cases:
+// %tag
+// .class
+// #id
+// they are different in that:
+// 1.) once the "end" of their state is reached, they either need to
+//     fill in the nodes tag, class or id. This is handled by the `f`
+//     argument
+// 2.) The state they remain in, if they haven't reached the end of
+//     their respective tag, class or id. This is passed as the `s`
+//     argument.
+//
+// This is complicated, not elegant AND I'm not explaining it well.
+// refer to the `tagName`, `class` and `id` functions below to see how
+// this is called.
+
 func (g *gamlline) baseTag(r rune, f func(), s stateFunc) stateFunc {
 	switch r {
 	case END:
@@ -175,7 +192,7 @@ func (g *gamlline) textNew(r rune) stateFunc {
 	switch r {
 	case END:
 		g.node.text = g.value.String()
-		return g.text
+		return g.ok
 	default:
 		g.value.WriteRune(r)
 		return g.text
@@ -224,8 +241,8 @@ func (g *gamlline) attributesAfterName(r rune) stateFunc {
 	// this one is stupid.
 	switch r {
 	case END:
-		g.node.AddBooleanAttribute(g.value.String())
-		return g.attributesAfterName
+		g.node.AddBooleanAttribute(g.attr_name)
+		return g.ok
 	case ' ', '=': // <-- allows a ==    == = 'bla'
 		return g.attributesAfterName
 	//case '\'', '"': // <-- allows a = 'Bla"
@@ -300,20 +317,21 @@ func (g *gamlline) fillInName() {
 	g.value.Reset()
 }
 
-func (g *gamlline) fillInDivClass() {
+func (g *gamlline) fillInAttribute(attribute_name string) {
 	if g.node.name == "" {
 		g.node.name = "div"
 	}
-	g.node.AddAttribute("class", g.value.String())
+	g.node.AddAttribute(attribute_name, g.value.String())
 	g.value.Reset()
+
+}
+
+func (g *gamlline) fillInDivClass() {
+	g.fillInAttribute("class")
 }
 
 func (g *gamlline) fillInDivId() {
-	if g.node.name == "" {
-		g.node.name = "div"
-	}
-	g.node.AddAttribute("id", g.value.String())
-	g.value.Reset()
+	g.fillInAttribute("id")
 }
 
 func (g *gamlline) String() string {
