@@ -15,17 +15,17 @@ import (
 
 type Parser struct {
 	scanner       *bufio.Scanner
-	line          string   // content of current line sans line ending
+	line          string    // content of current line sans line ending
 	gamlline      *gamlline // line with no comment or surrounding ws
-	lineNo        int      // current line number
-	indent        int      // current indention level
-	prevIndent    int      // previous indent
-	indentType    iType    // using tabs or space, determined by first line, mixing is not allowed
-	indentSpaces  int      // how many space == one indention level, determined by usage on first indented line
-	rootNode      *node    // "blank" root node of document that everything is attached to
-	currentNode   *node    // keeps track of the current position while parsing
-	done          bool     // done parsing?
-	err           error    // cache error which may have occured during parsing
+	lineNo        int       // current line number
+	indent        int       // current indention level
+	prevIndent    int       // previous indent
+	indentType    iType     // using tabs or space, determined by first line, mixing is not allowed
+	indentSpaces  int       // how many space == one indention level, determined by usage on first indented line
+	rootNode      *node     // "blank" root node of document that everything is attached to
+	currentNode   *node     // keeps track of the current position while parsing
+	done          bool      // done parsing?
+	err           error     // cache error which may have occured during parsing
 	IncludeLoader Loader
 }
 

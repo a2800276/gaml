@@ -1,8 +1,8 @@
 package gaml
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 func test_compare(t *testing.T, is string, expected string) {

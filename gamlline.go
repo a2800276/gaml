@@ -17,32 +17,27 @@ package gaml
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 )
 
-
-type stateFunc func(rune)(stateFunc)
+type stateFunc func(rune) stateFunc
 
 type gamlline struct {
-	line string
-	r    rune
-	node *node
-	parser *Parser
-	value bytes.Buffer
+	line      string
+	r         rune
+	node      *node
+	parser    *Parser
+	value     bytes.Buffer
 	attr_name string
 	stateFunc stateFunc
 }
 
-
-func GamlLineFromString(s string)*gamlline {
+func GamlLineFromString(s string) *gamlline {
 	g := gamlline{line: s}
 	g.stateFunc = g.initial
 	return &g
 }
-
-
-
 
 // let `parser` determine whether it can skip this line.
 func (g *gamlline) Empty() bool {
@@ -76,24 +71,24 @@ func (g *gamlline) processIntoCurrentNode(p *Parser) (err error) {
 	return
 }
 
-func (g *gamlline) ok (r rune) stateFunc {
+func (g *gamlline) ok(r rune) stateFunc {
 	return g.ok
 }
 
-func (g *gamlline) initial (r rune) stateFunc {
+func (g *gamlline) initial(r rune) stateFunc {
 	switch r {
 	case END:
 		return nil
-  case '%':
+	case '%':
 		g.node.nodeType = TAG
 		return g.tagName
-  case '.':
+	case '.':
 		g.node.nodeType = TAG
 		return g.class
-  case '#':
+	case '#':
 		g.node.nodeType = TAG
 		return g.id
-  case '>':
+	case '>':
 		g.node.nodeType = INC
 		return g.include
 	default:
@@ -102,7 +97,7 @@ func (g *gamlline) initial (r rune) stateFunc {
 		return g.text
 	}
 }
-func (g *gamlline) baseTag (r rune, f func(), s stateFunc) stateFunc {
+func (g *gamlline) baseTag(r rune, f func(), s stateFunc) stateFunc {
 	switch r {
 	case END:
 		f()
@@ -125,40 +120,40 @@ func (g *gamlline) baseTag (r rune, f func(), s stateFunc) stateFunc {
 		return g.openBrace(s)
 	default:
 		g.value.WriteRune(r)
-		return s 
+		return s
 	}
 }
-func (g *gamlline) tagName (r rune) stateFunc {
+func (g *gamlline) tagName(r rune) stateFunc {
 	return g.baseTag(r, g.fillInName, g.tagName)
 }
-func (g *gamlline) class (r rune) stateFunc {
+func (g *gamlline) class(r rune) stateFunc {
 	return g.baseTag(r, g.fillInDivClass, g.class)
 }
-func (g *gamlline) id (r rune) stateFunc {
+func (g *gamlline) id(r rune) stateFunc {
 	return g.baseTag(r, g.fillInDivId, g.id)
 }
 
-func (g *gamlline) include (r rune) stateFunc {
-	switch (r) {
-		case END:
-			g.parser.parseInclude(g.value.String())
-			return g.include
-		default:
-			g.value.WriteRune(r)
-			return g.include
+func (g *gamlline) include(r rune) stateFunc {
+	switch r {
+	case END:
+		g.parser.parseInclude(g.value.String())
+		return g.include
+	default:
+		g.value.WriteRune(r)
+		return g.include
 	}
 }
-func (g *gamlline) text (r rune) stateFunc {
-	switch (r) {
-		case END:
-			g.node.text = g.value.String()
-			return g.ok
-		default:
-			g.value.WriteRune(r)
-			return g.text
+func (g *gamlline) text(r rune) stateFunc {
+	switch r {
+	case END:
+		g.node.text = g.value.String()
+		return g.ok
+	default:
+		g.value.WriteRune(r)
+		return g.text
 	}
 }
-func (g *gamlline) textOrAttribute (r rune) stateFunc {
+func (g *gamlline) textOrAttribute(r rune) stateFunc {
 	switch r {
 	case END:
 		newTextNode(g)
@@ -175,13 +170,13 @@ func (g *gamlline) textOrAttribute (r rune) stateFunc {
 		return g.textNew
 	}
 }
-func (g *gamlline) textNew (r rune) stateFunc {
-			newTextNode(g)
-	switch (r) {
-		case END:
-			g.node.text = g.value.String()
-			return g.text
-		default:
+func (g *gamlline) textNew(r rune) stateFunc {
+	newTextNode(g)
+	switch r {
+	case END:
+		g.node.text = g.value.String()
+		return g.text
+	default:
 		g.value.WriteRune(r)
 		return g.text
 	}
@@ -193,7 +188,7 @@ func newTextNode(g *gamlline) {
 	g.node = node
 }
 
-func (g *gamlline) attributes (r rune) stateFunc {
+func (g *gamlline) attributes(r rune) stateFunc {
 	switch r {
 	case END:
 		return nil
@@ -207,7 +202,7 @@ func (g *gamlline) attributes (r rune) stateFunc {
 	}
 }
 
-func (g *gamlline) attributesName (r rune) stateFunc {
+func (g *gamlline) attributesName(r rune) stateFunc {
 	switch r {
 	case END:
 		return nil
@@ -225,7 +220,7 @@ func (g *gamlline) attributesName (r rune) stateFunc {
 	}
 }
 
-func (g *gamlline) attributesAfterName (r rune) stateFunc {
+func (g *gamlline) attributesAfterName(r rune) stateFunc {
 	// this one is stupid.
 	switch r {
 	case END:
@@ -244,7 +239,7 @@ func (g *gamlline) attributesAfterName (r rune) stateFunc {
 	}
 }
 
-func (g *gamlline) attributesValues (r rune) stateFunc {
+func (g *gamlline) attributesValues(r rune) stateFunc {
 	switch r {
 	//case '"', '\'':
 	case END:
@@ -259,8 +254,8 @@ func (g *gamlline) attributesValues (r rune) stateFunc {
 	}
 }
 
-func (g *gamlline) openBrace (s stateFunc) stateFunc {
-	return func(r rune)(stateFunc) {
+func (g *gamlline) openBrace(s stateFunc) stateFunc {
+	return func(r rune) stateFunc {
 		switch r {
 		case END:
 			return nil
@@ -273,22 +268,21 @@ func (g *gamlline) openBrace (s stateFunc) stateFunc {
 	}
 }
 
-
-func (g *gamlline) passLiteral (s stateFunc) stateFunc {
-	return func(r rune)(stateFunc) {
+func (g *gamlline) passLiteral(s stateFunc) stateFunc {
+	return func(r rune) stateFunc {
 		g.value.WriteRune(r)
 		switch r {
 		case END:
 			return nil
 		case '}':
-			return (*gamlline).closeBrace(g,s)
+			return (*gamlline).closeBrace(g, s)
 		default:
-			return (*gamlline).passLiteral(g,s)
+			return (*gamlline).passLiteral(g, s)
 		}
 	}
 }
-func (g *gamlline) closeBrace (s stateFunc) stateFunc {
-	return func(r rune)(stateFunc) {
+func (g *gamlline) closeBrace(s stateFunc) stateFunc {
+	return func(r rune) stateFunc {
 		g.value.WriteRune(r)
 		switch r {
 		case END:
@@ -296,7 +290,7 @@ func (g *gamlline) closeBrace (s stateFunc) stateFunc {
 		case '}':
 			return s
 		default:
-			return (*gamlline).passLiteral(g,s)
+			return (*gamlline).passLiteral(g, s)
 		}
 	}
 }
@@ -323,41 +317,41 @@ func (g *gamlline) fillInDivId() {
 }
 
 func (g *gamlline) String() string {
-	str := "line: "+g.line
-	str += " - r: "+strconv.QuoteRune(g.r)+" - state: "
+	str := "line: " + g.line
+	str += " - r: " + strconv.QuoteRune(g.r) + " - state: "
 	// a bit ridiculous
 	return str + g.state_func_to_string()
 }
 
 func (g *gamlline) state_func_to_string() string {
 	switch fmt.Sprintf("%p", g.stateFunc) {
-  case fmt.Sprintf("%p", g.initial):
-		 return "initial"
- case fmt.Sprintf("%p", g.tagName):
-		 return "tagName"
- case fmt.Sprintf("%p", g.class):
-		 return "class"
- case fmt.Sprintf("%p", g.id):
-		 return "id"
- case fmt.Sprintf("%p", g.include):
-		 return "include"
- case fmt.Sprintf("%p", g.text):
-		 return "text"
- case fmt.Sprintf("%p", g.textOrAttribute):
-		 return "textOrAttribute"
- case fmt.Sprintf("%p", g.textNew):
-		 return "textNew"
- case fmt.Sprintf("%p", g.attributes):
-		 return "attributes"
- case fmt.Sprintf("%p", g.attributesName):
-		 return "attributesName"
- case fmt.Sprintf("%p", g.attributesAfterName):
-		 return "attributesAfterName"
- case fmt.Sprintf("%p", g.attributesValues):
-		 return "attributesValues"
- case fmt.Sprintf("%p", g.ok):
-		 return "ok"
+	case fmt.Sprintf("%p", g.initial):
+		return "initial"
+	case fmt.Sprintf("%p", g.tagName):
+		return "tagName"
+	case fmt.Sprintf("%p", g.class):
+		return "class"
+	case fmt.Sprintf("%p", g.id):
+		return "id"
+	case fmt.Sprintf("%p", g.include):
+		return "include"
+	case fmt.Sprintf("%p", g.text):
+		return "text"
+	case fmt.Sprintf("%p", g.textOrAttribute):
+		return "textOrAttribute"
+	case fmt.Sprintf("%p", g.textNew):
+		return "textNew"
+	case fmt.Sprintf("%p", g.attributes):
+		return "attributes"
+	case fmt.Sprintf("%p", g.attributesName):
+		return "attributesName"
+	case fmt.Sprintf("%p", g.attributesAfterName):
+		return "attributesAfterName"
+	case fmt.Sprintf("%p", g.attributesValues):
+		return "attributesValues"
+	case fmt.Sprintf("%p", g.ok):
+		return "ok"
 	default:
-		 return fmt.Sprintf("%p", g.stateFunc)
+		return fmt.Sprintf("%p", g.stateFunc)
 	}
 }
