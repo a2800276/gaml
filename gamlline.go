@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-type stateFunc func(rune) stateFunc
+type stateFunc func() stateFunc
 
 type gamlline struct {
 	line      string
@@ -61,22 +61,27 @@ func (g *gamlline) processIntoCurrentNode(p *Parser) (err error) {
 
 	for _, r := range g.line {
 		g.r = r
-		g.stateFunc = g.stateFunc(r)
+		g.stateFunc = g.stateFunc()
 	}
 
-	final_state := g.stateFunc(END)
+	g.r = END
+	final_state := g.stateFunc()
 	if final_state == nil {
 		return p.Err(fmt.Sprintf("implausible state! (%s)", g.state_func_to_string()))
 	}
 	return
 }
 
-func (g *gamlline) ok(r rune) stateFunc {
+func (g *gamlline) collectRune() {
+	g.value.WriteRune(g.r)
+}
+
+func (g *gamlline) ok() stateFunc {
 	return g.ok
 }
 
-func (g *gamlline) initial(r rune) stateFunc {
-	switch r {
+func (g *gamlline) initial() stateFunc {
+	switch g.r {
 	case END:
 		return nil
 	case '%':
@@ -93,7 +98,7 @@ func (g *gamlline) initial(r rune) stateFunc {
 		return g.include
 	default:
 		g.node.nodeType = TXT
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.text
 	}
 }
@@ -114,8 +119,8 @@ func (g *gamlline) initial(r rune) stateFunc {
 // refer to the `tagName`, `class` and `id` functions below to see how
 // this is called.
 
-func (g *gamlline) baseTag(r rune, f func(), s stateFunc) stateFunc {
-	switch r {
+func (g *gamlline) baseTag(f func(), s stateFunc) stateFunc {
+	switch g.r {
 	case END:
 		f()
 		return g.ok
@@ -127,74 +132,74 @@ func (g *gamlline) baseTag(r rune, f func(), s stateFunc) stateFunc {
 		return g.id
 	case ' ':
 		f()
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.textOrAttribute
 	case '(':
 		f()
 		return g.attributes
 	case '{':
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.openBrace(s)
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return s
 	}
 }
-func (g *gamlline) tagName(r rune) stateFunc {
-	return g.baseTag(r, g.fillInName, g.tagName)
+func (g *gamlline) tagName() stateFunc {
+	return g.baseTag(g.fillInName, g.tagName)
 }
-func (g *gamlline) class(r rune) stateFunc {
-	return g.baseTag(r, g.fillInDivClass, g.class)
+func (g *gamlline) class() stateFunc {
+	return g.baseTag(g.fillInDivClass, g.class)
 }
-func (g *gamlline) id(r rune) stateFunc {
-	return g.baseTag(r, g.fillInDivId, g.id)
+func (g *gamlline) id() stateFunc {
+	return g.baseTag(g.fillInDivId, g.id)
 }
 
-func (g *gamlline) include(r rune) stateFunc {
-	switch r {
+func (g *gamlline) include() stateFunc {
+	switch g.r {
 	case END:
 		g.parser.parseInclude(g.value.String())
 		return g.include
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.include
 	}
 }
-func (g *gamlline) text(r rune) stateFunc {
-	switch r {
+func (g *gamlline) text() stateFunc {
+	switch g.r {
 	case END:
 		g.node.text = g.value.String()
 		return g.ok
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.text
 	}
 }
-func (g *gamlline) textOrAttribute(r rune) stateFunc {
-	switch r {
+func (g *gamlline) textOrAttribute() stateFunc {
+	switch g.r {
 	case END:
 		newTextNode(g)
 		g.node.text = g.value.String()
 		return g.ok
 	case ' ':
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.textOrAttribute
 	case '(':
 		g.value.Reset()
 		return g.attributes
 	default: // default in all of these state functions is not correct, catch all sort of unicode crap people may throw at us ...
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.textNew
 	}
 }
-func (g *gamlline) textNew(r rune) stateFunc {
+func (g *gamlline) textNew() stateFunc {
 	newTextNode(g)
-	switch r {
+	switch g.r {
 	case END:
 		g.node.text = g.value.String()
 		return g.ok
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.text
 	}
 }
@@ -205,8 +210,8 @@ func newTextNode(g *gamlline) {
 	g.node = node
 }
 
-func (g *gamlline) attributes(r rune) stateFunc {
-	switch r {
+func (g *gamlline) attributes() stateFunc {
+	switch g.r {
 	case END:
 		return nil
 	case ' ':
@@ -214,13 +219,13 @@ func (g *gamlline) attributes(r rune) stateFunc {
 	case ')':
 		return g.textNew
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.attributesName
 	}
 }
 
-func (g *gamlline) attributesName(r rune) stateFunc {
-	switch r {
+func (g *gamlline) attributesName() stateFunc {
+	switch g.r {
 	case END:
 		return nil
 	case ' ', '=':
@@ -232,14 +237,14 @@ func (g *gamlline) attributesName(r rune) stateFunc {
 		g.value.Reset()
 		return g.textNew
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.attributesName
 	}
 }
 
-func (g *gamlline) attributesAfterName(r rune) stateFunc {
+func (g *gamlline) attributesAfterName() stateFunc {
 	// this one is stupid.
-	switch r {
+	switch g.r {
 	case END:
 		g.node.AddBooleanAttribute(g.attr_name)
 		return g.ok
@@ -252,12 +257,12 @@ func (g *gamlline) attributesAfterName(r rune) stateFunc {
 	default:
 		g.node.AddBooleanAttribute(g.attr_name)
 		g.value.Reset()
-		return g.attributes(r)
+		return g.attributes()
 	}
 }
 
-func (g *gamlline) attributesValues(r rune) stateFunc {
-	switch r {
+func (g *gamlline) attributesValues() stateFunc {
+	switch g.r {
 	//case '"', '\'':
 	case END:
 		return nil
@@ -266,29 +271,29 @@ func (g *gamlline) attributesValues(r rune) stateFunc {
 		g.value.Reset()
 		return g.attributes
 	default:
-		g.value.WriteRune(r)
+		g.collectRune()
 		return g.attributesValues
 	}
 }
 
 func (g *gamlline) openBrace(s stateFunc) stateFunc {
-	return func(r rune) stateFunc {
-		switch r {
+	return func() stateFunc {
+		switch g.r {
 		case END:
 			return nil
 		case '{': // second {, collect literally
-			g.value.WriteRune(r)
+			g.collectRune()
 			return g.passLiteral(s)
 		default:
-			return s(r)
+			return s()
 		}
 	}
 }
 
 func (g *gamlline) passLiteral(s stateFunc) stateFunc {
-	return func(r rune) stateFunc {
-		g.value.WriteRune(r)
-		switch r {
+	return func() stateFunc {
+		g.collectRune()
+		switch g.r {
 		case END:
 			return nil
 		case '}':
@@ -299,9 +304,9 @@ func (g *gamlline) passLiteral(s stateFunc) stateFunc {
 	}
 }
 func (g *gamlline) closeBrace(s stateFunc) stateFunc {
-	return func(r rune) stateFunc {
-		g.value.WriteRune(r)
-		switch r {
+	return func() stateFunc {
+		g.collectRune()
+		switch g.r {
 		case END:
 			return nil
 		case '}':
