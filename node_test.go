@@ -2,6 +2,7 @@ package gaml
 
 import (
 	"testing"
+	"strings"
 )
 
 func test_compare(t *testing.T, is string, expected string) {
@@ -62,9 +63,9 @@ func TestSpecialInQuotes(t *testing.T) {
 }
 
 func TestSpecialInQuotesFail(t *testing.T) {
-	if _, err := GamlToHtml("%a.{{.something or the other"); err == nil {
-		t.Error("expected an error, did not get!")
-	} else if err.Error() != "implausible state! (PASS_LITERAL) line(1):%a.{{.something or the other" {
+	if str, err := GamlToHtml("%a.{{.something or the other"); err == nil {
+		t.Errorf("expected an error, did not get! instead: %s", str)
+	} else if strings.Index(err.Error(), "implausible state!") != 0 {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 }

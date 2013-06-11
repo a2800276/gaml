@@ -16,7 +16,7 @@ import (
 type Parser struct {
 	scanner       *bufio.Scanner
 	line          string   // content of current line sans line ending
-	gamlline      gamlline // line with no comment or surrounding ws
+	gamlline      *gamlline // line with no comment or surrounding ws
 	lineNo        int      // current line number
 	indent        int      // current indention level
 	prevIndent    int      // previous indent
