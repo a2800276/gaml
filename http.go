@@ -65,10 +65,10 @@ func (h *httpHamlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if parser, err := h.loader.Load(path); err != nil {
 		http.NotFound(w, r)
 	} else {
-		if renderer, err2 := NewRenderer(parser); err2 != nil {
+		if renderer, err2 := NewRenderer(parser, w); err2 != nil {
 			http.Error(w, http.StatusText(500), 500)
 		} else {
-			renderer.ToHtml(w)
+			renderer.ToHtml()
 		}
 	}
 }

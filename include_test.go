@@ -1,6 +1,7 @@
 package gaml
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 )
@@ -168,11 +169,13 @@ func testInclude(t *testing.T, in string, expected string) {
 	p := NewParserString(in)
 	var loader DummyLoader
 	p.IncludeLoader = loader
+	var output bytes.Buffer
 
-	if r, err := NewRenderer(p); err != nil {
+	if r, err := NewRenderer(p, &output); err != nil {
 		t.Error(err)
 	} else {
-		test_compare(t, r.ToHtmlString(), expected)
+		r.ToHtml()
+		test_compare(t, output.String(), expected)
 	}
 
 }
