@@ -69,7 +69,7 @@ passed through and not considered to be a g/haml dot, hash or whatever.
 ## Usage
 
 The simplest case: convert a string to html:
-
+```go
 	package main
 	import ("gaml")
 	
@@ -84,7 +84,7 @@ The simplest case: convert a string to html:
 		html, _ := gaml.GamlToHtml(line)
 		println(html)
 	}
-	
+```	
 	
 yields:
 
@@ -101,6 +101,7 @@ yields:
 
 Though typically, you will want to render directly to an `io.Writer`:
 
+```go
     package main
     
     import (
@@ -137,6 +138,7 @@ Though typically, you will want to render directly to an `io.Writer`:
       // finally, render the abstract gaml
       renderer.ToHtml(root, os.Stdout)
     }
+```
 
 this outputs:
 
