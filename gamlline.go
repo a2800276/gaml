@@ -28,6 +28,7 @@ type gamlline struct {
 	r         rune
 	node      *node
 	parser    *Parser
+	err       string
 	value     bytes.Buffer
 	attr_name string
 	stateFunc stateFunc
@@ -61,7 +62,9 @@ func (g *gamlline) processIntoCurrentNode(p *Parser) (err error) {
 
 	for _, r := range g.line {
 		g.r = r
-		g.stateFunc = g.stateFunc()
+		if g.stateFunc = g.stateFunc(); g.stateFunc == nil {
+			return p.Err(g.err)
+		}
 	}
 
 	g.r = END
@@ -254,6 +257,9 @@ func (g *gamlline) attributesAfterName() stateFunc {
 	case '\'': // <-- allows only a = 'Bla'
 		return g.attributesValues
 	// valueless attribute, start of next attr or )
+	case '"':
+		g.err = "attribute values must be in single quote"
+		return nil
 	default:
 		g.node.AddBooleanAttribute(g.attr_name)
 		g.value.Reset()

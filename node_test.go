@@ -19,6 +19,14 @@ func test_simple(t *testing.T, in string, expected string) {
 	}
 }
 
+func test_err(t *testing.T, in string, expected_err string) {
+	if _, err := GamlToHtml(in); err != nil {
+		test_compare(t, err.Error(), expected_err)
+	} else {
+		t.Error("expected fail")
+	}
+}
+
 func TestClass(t *testing.T) {
 	test_simple(t, ".bla", "<div class='bla'>\n</div>\n")
 	test_simple(t, ".bla.bla.bla", "<div class='bla bla bla'>\n</div>\n")
@@ -86,8 +94,8 @@ func TestVoidElement(t *testing.T) {
 }
 
 func TestQuote(t *testing.T) {
-	test_simple(t, "%body(onload='alert(\"hello\")')", "<body onload='alert(\"hello\")'>\n</body>\n")
-	//test_simple(t, "%body(onload=\"alert('hello')\")", "<body onload="alert(\"hello\")'>\n</body>\n")
+	test_simple(t, "%body(onload='alert(\"hello1\")')", "<body onload='alert(\"hello1\")'>\n</body>\n")
+	test_err(t, "%body(onload=\"alert('hello')\")", "attribute values must be in single quote line(1):%body(onload=\"alert('hello')\")")
 }
 
 const blank_line = `
@@ -126,28 +134,3 @@ func TestFindFurthestChild(t *testing.T) {
 		t.Fail()
 	}
 }
-
-//func TestNode(t * testing.T) {
-//  buf := bytes.NewBufferString("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
-//  parser := NewParser(buf)
-//  if err := parser.Parse(); err != nil {
-//    t.Error(err)
-//  }
-//  for _, node := range(parser.rootNodes) {
-//    t.Log("%p\n %p\n  %p\n   %p\n   %p\n  %p\n%p\n %p")
-//    node.render_debug(0)
-//  }
-//}
-
-//func TestVaried2(t * testing.T) {
-//  var bufout bytes.Buffer
-//  buf := bytes.NewBufferString("%html\n %head\n  %title bla\n %body\n  %h1\n   heading!\n  %p\n  %p\n  %h2\n   %p")
-//  parser := NewParser(buf)
-//  if err := parser.Parse(); err != nil {
-//    t.Error(err)
-//  }
-//  for _, node := range(parser.rootNodes) {
-//    node.Render(&bufout)
-//  }
-//  println(bufout.String())
-//}
