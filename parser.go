@@ -48,9 +48,9 @@ func NewParserString(gaml string) (parser *Parser) {
 	return NewParser(bytes.NewBufferString(gaml))
 }
 
-func (p *Parser) Parse() (err error) {
+func (p *Parser) Parse() (rootNode *node, err error) {
 	if p.done {
-		return p.err
+		return p.rootNode, nil
 	} else {
 		p.done = true
 	}
@@ -67,19 +67,18 @@ func (p *Parser) Parse() (err error) {
 		p.err = err
 		return
 	}
-	return
+	return p.rootNode, err
 }
 
 func (p *Parser) parseInclude(name string) (err error) {
-	var p2 *Parser
-	if p2, err = p.IncludeLoader.Load(strings.TrimSpace(name)); err != nil {
+	var includedNode *node
+	if includedNode, err = p.IncludeLoader.Load(strings.TrimSpace(name)); err != nil {
 		return
 	}
-	p2.Parse()
 
 	// currentNode will be an INC node representing the
 	// its children are the results of executing the include parser.
-	p.currentNode.children = p2.rootNode.children
+	p.currentNode.children = includedNode.children
 
 	return
 }

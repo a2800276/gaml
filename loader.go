@@ -12,7 +12,7 @@ import (
 // The whole convolute is a victim of premature optimization ...
 
 type Loader interface {
-	Load(id interface{}) (parser *Parser, err error)
+	Load(id interface{}) (root *node, err error)
 }
 
 type fileSystemLoader struct {
@@ -43,7 +43,7 @@ func NewFileSystemLoader(dir string) (loader Loader, err error) {
 	return &fileSystemLoader{dir}, nil
 }
 
-func (l *fileSystemLoader) Load(id_string interface{}) (parser *Parser, err error) {
+func (l *fileSystemLoader) Load(id_string interface{}) (root *node, err error) {
 	// check
 	id, ok := id_string.(string)
 	if !ok {
@@ -60,10 +60,9 @@ func (l *fileSystemLoader) Load(id_string interface{}) (parser *Parser, err erro
 
 	defer file.Close()
 
-	parser = NewParser(file)
+	parser := NewParser(file)
 	// the parser inherits this loader to handle loading includes that
 	// it may encounter.
 	parser.IncludeLoader = l
-	err = parser.Parse()
-	return
+	return parser.Parse()
 }

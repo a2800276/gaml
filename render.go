@@ -7,41 +7,63 @@ import (
 )
 
 type Renderer struct {
-	nodes  []*node
+	Indent IndentFunc
+}
+
+type renderer struct {
 	writer io.Writer
+	opts   *Renderer
+}
+
+// add custom indentation if you want.
+// take the level of indentation and write the indent to the writer.
+// default is to not indent. If using the `GamlToHtml`
+// utility method, the returned string will be indented
+// with a space per indent.
+type IndentFunc func(indentLevel int, writer io.Writer)
+
+var DefaultIndentFunc = func(i int, w io.Writer) { return }
+var IndentSpace = func(indent int, w io.Writer) {
+	for i := 0; i != indent; i++ {
+		io.WriteString(w, " ")
+	}
 }
 
 func GamlToHtml(gaml string) (html string, err error) {
-	var renderer Renderer
 	var buffer bytes.Buffer
-	if renderer, err = NewRenderer(NewParser(bytes.NewBufferString(gaml)), &buffer); err != nil {
-		return
+
+	renderer := NewRenderer()
+
+	renderer.Indent = IndentSpace
+	parser := NewParser(bytes.NewBufferString(gaml))
+
+	if root, err2 := parser.Parse(); err2 != nil {
+		return "", err2
+	} else {
+		renderer.ToHtml(root, &buffer)
 	}
-	renderer.ToHtml()
 	return buffer.String(), nil
 }
 
-func NewRenderer(p *Parser, writer io.Writer) (r Renderer, err error) {
-	if err = p.Parse(); err != nil {
-		return
-	}
-	return Renderer{p.rootNode.children, writer}, nil
+func NewRenderer() *Renderer {
+	return &Renderer{Indent: DefaultIndentFunc}
 }
 
-func (r *Renderer) ToHtml() {
-	for _, node := range r.nodes {
-		r.Render(node)
+func (r *Renderer) ToHtml(root *node, writer io.Writer) {
+	rr := renderer{writer, r}
+	for _, node := range root.children {
+		rr.Render(node)
 	}
 }
 
 // Write an html representation of this node to the specified `Writer`
 // currently, there is no way to influence how the node will be
 // rendered. Take it or leave it!
-func (r *Renderer) Render(n *node) {
+func (r *renderer) Render(n *node) {
 	r.render(n, 0)
 }
 
-func (r *Renderer) render(n *node, indent int) {
+func (r *renderer) render(n *node, indent int) {
 	switch {
 	case n.nodeType == DOCTYPE:
 		r.renderDocType(n)
@@ -55,20 +77,15 @@ func (r *Renderer) render(n *node, indent int) {
 	}
 }
 
-func (r *Renderer) renderDocType(n *node) {
+func (r *renderer) renderDocType(n *node) {
 	// this is in it's own method so all the doctypes
 	// can be collected here one fine day when different
 	// rendering options are supported.
 	io.WriteString(r.writer, "<!DOCTYPE html>\n")
 }
 
-func (r *Renderer) renderTag(n *node, indent int) {
-	indentfunc := func() {
-		for i := 0; i != indent; i++ {
-			io.WriteString(r.writer, " ")
-		}
-	}
-	indentfunc()
+func (r *renderer) renderTag(n *node, indent int) {
+	r.opts.Indent(indent, r.writer)
 	io.WriteString(r.writer, "<")
 	io.WriteString(r.writer, n.name)
 
@@ -81,19 +98,19 @@ func (r *Renderer) renderTag(n *node, indent int) {
 	}
 	r.renderChildren(n, indent+1)
 
-	indentfunc()
+	r.opts.Indent(indent, r.writer)
 	io.WriteString(r.writer, "</")
 	io.WriteString(r.writer, n.name)
 	io.WriteString(r.writer, ">\n") // what to do about the trailing \n !?
 }
 
-func (r *Renderer) renderChildren(n *node, indent int) {
+func (r *renderer) renderChildren(n *node, indent int) {
 	for _, child := range n.children {
 		r.render(child, indent)
 	}
 }
 
-func (r *Renderer) isVoid(n *node) bool {
+func (r *renderer) isVoid(n *node) bool {
 	for _, name := range voidElements {
 		if n.name == name {
 			return true
@@ -102,7 +119,7 @@ func (r *Renderer) isVoid(n *node) bool {
 	return false
 }
 
-func (r *Renderer) renderAttributes(n *node) {
+func (r *renderer) renderAttributes(n *node) {
 	// this one is pretty straightforward, may need some escaping at some point.
 	// currently my "security model" is that gaml templates come from a trusted
 	// source (namely myself) and will be sanitized.
@@ -118,7 +135,7 @@ func (r *Renderer) renderAttributes(n *node) {
 	}
 }
 
-func (r *Renderer) renderText(n *node, indent int) {
+func (r *renderer) renderText(n *node, indent int) {
 	// ditto: will probably want some options for escaping here.
 	for i := 0; i != indent; i++ {
 		io.WriteString(r.writer, " ")

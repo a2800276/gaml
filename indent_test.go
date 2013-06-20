@@ -8,7 +8,7 @@ import (
 func TestIndent(t *testing.T) {
 	buf := bytes.NewBufferString("%p\n\t%p")
 	parser := NewParser(buf)
-	if err := parser.Parse(); err != nil {
+	if _, err := parser.Parse(); err != nil {
 		t.Error(err)
 	}
 	if parser.indent != 1 {
@@ -17,7 +17,7 @@ func TestIndent(t *testing.T) {
 
 	buf = bytes.NewBufferString("%p\n\t%p\n\t %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err == nil {
+	if _, err := parser.Parse(); err == nil {
 		t.Error("expected err!")
 	} else {
 		if err.Error() != "cannot mix spaces with tabs line(3):\t %p" {
@@ -27,7 +27,7 @@ func TestIndent(t *testing.T) {
 
 	buf = bytes.NewBufferString("%p\n\t %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err == nil {
+	if _, err := parser.Parse(); err == nil {
 		t.Error("expected err!")
 	} else {
 		if err.Error() != "initial indent > 1 line(2):\t %p" {
@@ -37,7 +37,7 @@ func TestIndent(t *testing.T) {
 
 	buf = bytes.NewBufferString("%p\n \t%p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err == nil {
+	if _, err := parser.Parse(); err == nil {
 		t.Error("expected err!")
 	} else {
 		if err.Error() != "cannot mix tabs with spaces line(2): \t%p" {
@@ -46,7 +46,7 @@ func TestIndent(t *testing.T) {
 	}
 	buf = bytes.NewBufferString("%p\n  %p\n   %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err == nil {
+	if _, err := parser.Parse(); err == nil {
 		t.Error("expected err!")
 	} else {
 		if err.Error() != "incoherent number of space, not a multiple of intial indent! line(3):   %p" {
@@ -55,7 +55,7 @@ func TestIndent(t *testing.T) {
 	}
 	buf = bytes.NewBufferString("%p\n  %p\n    %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err != nil {
+	if _, err := parser.Parse(); err != nil {
 		t.Errorf("unexpected err! >%s<", err.Error())
 	}
 
@@ -65,7 +65,7 @@ func TestIndent(t *testing.T) {
 
 	buf = bytes.NewBufferString("%p\n   %p\n      %p\n         %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err != nil {
+	if _, err := parser.Parse(); err != nil {
 		t.Errorf("unexpected err! >%s<", err.Error())
 	}
 
@@ -74,7 +74,7 @@ func TestIndent(t *testing.T) {
 	}
 	buf = bytes.NewBufferString("%p\n   %p\n      %p\n         %p\n      %p")
 	parser = NewParser(buf)
-	if err := parser.Parse(); err != nil {
+	if _, err := parser.Parse(); err != nil {
 		t.Errorf("unexpected err! >%s<", err.Error())
 	}
 

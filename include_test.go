@@ -8,7 +8,7 @@ import (
 
 type DummyLoader struct{}
 
-func (d DummyLoader) Load(id interface{}) (p *Parser, err error) {
+func (d DummyLoader) Load(id interface{}) (root *node, err error) {
 	// check string and equal to expected
 	if str, ok := id.(string); !ok {
 		return nil, fmt.Errorf("!? not a string")
@@ -16,13 +16,14 @@ func (d DummyLoader) Load(id interface{}) (p *Parser, err error) {
 		if str != "included_sample" && str != "included_sample2" {
 			return nil, fmt.Errorf("!? wrong string %s", str)
 		}
+		var p *Parser
 		switch str {
 		case "included_sample":
 			p = NewParserString(included_sample)
 		case "included_sample2":
 			p = NewParserString(included_sample2)
 		}
-		return
+		return p.Parse()
 	}
 
 }
@@ -171,10 +172,12 @@ func testInclude(t *testing.T, in string, expected string) {
 	p.IncludeLoader = loader
 	var output bytes.Buffer
 
-	if r, err := NewRenderer(p, &output); err != nil {
+	renderer := Renderer{IndentSpace}
+
+	if root, err := p.Parse(); err != nil {
 		t.Error(err)
 	} else {
-		r.ToHtml()
+		renderer.ToHtml(root, &output)
 		test_compare(t, output.String(), expected)
 	}
 

@@ -130,7 +130,7 @@ const f_furthest_child = `
 
 func TestFindFurthestChild(t *testing.T) {
 	p := NewParserString(f_furthest_child)
-	if err := p.Parse(); err != nil {
+	if _, err := p.Parse(); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 	node := p.rootNode.findFurthestChild()

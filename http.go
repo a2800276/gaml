@@ -13,15 +13,21 @@ import (
 // /bla/bla/dingdong.html -> ${base}/bla/bla/dingdong.haml
 // /bla/bla/              -> ${base}/bla/bla/index.haml
 func NewGamlHandler(base string) (hndl http.Handler, err error) {
+	return NewGamlHandlerWithRenderer(base, NewRenderer())
+}
+
+func NewGamlHandlerWithRenderer(base string, renderer *Renderer) (hndl http.Handler, err error) {
 	var l Loader
 	if l, err = NewFileSystemLoader(base); err != nil {
 		return
 	}
-	return &httpHamlHandler{l}, nil
+	return &httpHamlHandler{l, renderer}, nil
+
 }
 
 type httpHamlHandler struct {
-	loader Loader
+	loader   Loader
+	renderer *Renderer
 }
 
 func adjustSuffix(path string) string {
@@ -62,13 +68,13 @@ func (h *httpHamlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path = adjustSuffix(path)
-	if parser, err := h.loader.Load(path); err != nil {
+	if root, err := h.loader.Load(path); err != nil {
 		http.NotFound(w, r)
 	} else {
-		if renderer, err2 := NewRenderer(parser, w); err2 != nil {
-			http.Error(w, http.StatusText(500), 500)
-		} else {
-			renderer.ToHtml()
-		}
+		h.renderer.ToHtml(root, w)
+		//		if root, err := parser.Parse(); err != nil {
+		//			http.Error(w, http.StatusText(500), 500)
+		//		} else {
+		//		}
 	}
 }
