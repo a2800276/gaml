@@ -31,7 +31,10 @@ indention.
 
 Attributes are handled like this:
 
-    %a(href="http://example.com")
+    %a(href='http://example.com')
+
+Note the single quotes around the attribute values. No choice of single or
+double. (I might switch to double quotes or makes this configurable, though)
 
 `id` and `class` attributes can be abbreviated further with `#` and `.` 
 respectively:
@@ -104,6 +107,21 @@ I don't see the point. I'm perfectly happy with "html" style attributes:
 
 This only makes sense in a ruby environment. Ruby code in those templates won't be
 portable anyway.
+
+## Single quoted attribute values onlu
+
+This is legal:
+
+    %a(href='http://example.com')
+
+this is not:
+
+    %a(href="http://example.com")
+
+#### Rationale
+
+Simplicity of implementation. Also, gaml main raison d'etre is to ease
+typing, doublequotes require you pressing "shift" :)
 
 ### no variable interpolation
 
