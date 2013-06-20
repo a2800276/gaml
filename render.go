@@ -30,7 +30,7 @@ func NewRenderer(p *Parser, writer io.Writer) (r Renderer, err error) {
 
 func (r *Renderer) ToHtml() {
 	for _, node := range r.nodes {
-		node.Render(r.writer)
+		r.Render(node)
 	}
 }
 
@@ -41,7 +41,7 @@ func (r *Renderer) Render(n *node) {
 	r.render(n, 0)
 }
 
-func (r *Renderer) render(n *noe, indent int) {
+func (r *Renderer) render(n *node, indent int) {
 	switch {
 	case n.nodeType == DOCTYPE:
 		r.renderDocType(n)
@@ -59,32 +59,32 @@ func (r *Renderer) renderDocType(n *node) {
 	// this is in it's own method so all the doctypes
 	// can be collected here one fine day when different
 	// rendering options are supported.
-	io.WriteString(r.w, "<!DOCTYPE html>\n")
+	io.WriteString(r.writer, "<!DOCTYPE html>\n")
 }
 
 func (r *Renderer) renderTag(n *node, indent int) {
 	indentfunc := func() {
 		for i := 0; i != indent; i++ {
-			io.WriteString(r.w, " ")
+			io.WriteString(r.writer, " ")
 		}
 	}
 	indentfunc()
-	io.WriteString(r.w, "<")
-	io.WriteString(r.w, n.name)
+	io.WriteString(r.writer, "<")
+	io.WriteString(r.writer, n.name)
 
-	n.renderAttributes(r.w)
+	r.renderAttributes(n)
 
-	io.WriteString(r.w, ">\n")
+	io.WriteString(r.writer, ">\n")
 
-	if n.isVoid() {
+	if r.isVoid(n) {
 		return
 	}
-	n.renderChildren(r.w, indent+1)
+	r.renderChildren(n, indent+1)
 
 	indentfunc()
-	io.WriteString(r.w, "</")
-	io.WriteString(r.w, n.name)
-	io.WriteString(r.w, ">\n") // what to do about the trailing \n !?
+	io.WriteString(r.writer, "</")
+	io.WriteString(r.writer, n.name)
+	io.WriteString(r.writer, ">\n") // what to do about the trailing \n !?
 }
 
 func (r *Renderer) renderChildren(n *node, indent int) {
@@ -108,12 +108,12 @@ func (r *Renderer) renderAttributes(n *node) {
 	// source (namely myself) and will be sanitized.
 
 	for key, values := range n.attributes {
-		io.WriteString(r.w, " ")
-		io.WriteString(r.w, key)
+		io.WriteString(r.writer, " ")
+		io.WriteString(r.writer, key)
 		if values != nil {
-			io.WriteString(r.w, "='")
-			io.WriteString(r.w, strings.Join(values, " "))
-			io.WriteString(r.w, "'")
+			io.WriteString(r.writer, "='")
+			io.WriteString(r.writer, strings.Join(values, " "))
+			io.WriteString(r.writer, "'")
 		}
 	}
 }
@@ -121,9 +121,9 @@ func (r *Renderer) renderAttributes(n *node) {
 func (r *Renderer) renderText(n *node, indent int) {
 	// ditto: will probably want some options for escaping here.
 	for i := 0; i != indent; i++ {
-		io.WriteString(r.w, " ")
+		io.WriteString(r.writer, " ")
 	}
-	io.WriteString(r.w, n.text)
-	io.WriteString(r.w, "\n")
+	io.WriteString(r.writer, n.text)
+	io.WriteString(r.writer, "\n")
 
 }
