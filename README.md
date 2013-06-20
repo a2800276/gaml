@@ -65,7 +65,94 @@ class shortcut. Therefore, the exception to the "no-escaping" rule is:
 everything in go template double braces (`{{ .go_template_stuff }}`) is
 passed through and not considered to be a g/haml dot, hash or whatever.
 
-## Additional Functionality
+
+## Usage
+
+The simplest case: convert a string to html:
+
+	package main
+	import ("gaml")
+	
+	func main() {
+		line := `
+	%html
+	  %head
+	  %body
+	    %h1
+	      Hello World`
+		
+		html, _ := gaml.GamlToHtml(line)
+		println(html)
+	}
+	
+	
+yields:
+
+    $ go run main/main.go
+    <html>
+     <head>
+      <body>
+       <h1>
+        Hello World
+       </h1>
+      </body>
+     </head>
+    </html>	  
+
+Though typically, you will want to render directly to an `io.Writer`:
+
+    package main
+    
+    import (
+    	"gaml"
+    	"bytes"
+    	"os"
+    )
+    
+    // this configures the output options and can be reused
+    var renderer = gaml.NewRenderer()
+    
+    func main() {
+    	line := `
+    %html
+    	%head
+    		%body
+    			%h1
+    				Hello World`
+    
+      reader := bytes.NewBufferString(line)
+    
+      // Construct a parser from an `io.Reader`, there is
+      // also a convenienve method: NewParserString(string) 
+      // we could have used ...
+    
+      parser := gaml.NewParser(reader)
+    
+      // the root node returned by `Parse` is an abstract 
+      // represenation of the gaml. It too can be reused if
+      // the underlying gaml does not change.
+    
+      root, _ := parser.Parse()
+    
+      // finally, render the abstract gaml
+      renderer.ToHtml(root, os.Stdout)
+    }
+
+this outputs:
+
+    $ go run main/main2.go
+    <html><head><body><h1>Hello World
+    </h1></body></head></html>
+
+Note the default Renderer does not indent the output and doesn't insert newlines 
+between tags, though it does after text elements.
+
+### HTTP
+
+The package also includes an `http.Handler` implementation for integration with 
+the `net.http` package. See the `NewGamlHandler` docs in `http.go`
+
+## Additional Functionality (compared to Haml)
 
 ### Includes
 

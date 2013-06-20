@@ -16,6 +16,7 @@ func NewGamlHandler(base string) (hndl http.Handler, err error) {
 	return NewGamlHandlerWithRenderer(base, NewRenderer())
 }
 
+// same as `NewGamlHandler` but with custom out rendering options.
 func NewGamlHandlerWithRenderer(base string, renderer *Renderer) (hndl http.Handler, err error) {
 	var l Loader
 	if l, err = NewFileSystemLoader(base); err != nil {
@@ -72,9 +73,5 @@ func (h *httpHamlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	} else {
 		h.renderer.ToHtml(root, w)
-		//		if root, err := parser.Parse(); err != nil {
-		//			http.Error(w, http.StatusText(500), 500)
-		//		} else {
-		//		}
 	}
 }
