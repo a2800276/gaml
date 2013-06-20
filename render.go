@@ -37,63 +37,63 @@ func (r *Renderer) ToHtml() {
 // Write an html representation of this node to the specified `Writer`
 // currently, there is no way to influence how the node will be
 // rendered. Take it or leave it!
-func (n *node) Render(writer io.Writer) {
-	n.render(writer, 0)
+func (r *Renderer) Render(n *node) {
+	r.render(n, 0)
 }
 
-func (n *node) render(w io.Writer, indent int) {
+func (r *Renderer) render(n *noe, indent int) {
 	switch {
 	case n.nodeType == DOCTYPE:
-		n.renderDocType(w)
+		r.renderDocType(n)
 	case n.name == "" && n.text == "":
 		// blank node (root, include)
-		n.renderChildren(w, indent)
+		r.renderChildren(n, indent)
 	case n.name != "":
-		n.renderTag(w, indent)
+		r.renderTag(n, indent)
 	default:
-		n.renderText(w, indent)
+		r.renderText(n, indent)
 	}
 }
 
-func (n *node) renderDocType(w io.Writer) {
+func (r *Renderer) renderDocType(n *node) {
 	// this is in it's own method so all the doctypes
 	// can be collected here one fine day when different
 	// rendering options are supported.
-	io.WriteString(w, "<!DOCTYPE html>\n")
+	io.WriteString(r.w, "<!DOCTYPE html>\n")
 }
 
-func (n *node) renderTag(w io.Writer, indent int) {
+func (r *Renderer) renderTag(n *node, indent int) {
 	indentfunc := func() {
 		for i := 0; i != indent; i++ {
-			io.WriteString(w, " ")
+			io.WriteString(r.w, " ")
 		}
 	}
 	indentfunc()
-	io.WriteString(w, "<")
-	io.WriteString(w, n.name)
+	io.WriteString(r.w, "<")
+	io.WriteString(r.w, n.name)
 
-	n.renderAttributes(w)
+	n.renderAttributes(r.w)
 
-	io.WriteString(w, ">\n")
+	io.WriteString(r.w, ">\n")
 
 	if n.isVoid() {
 		return
 	}
-	n.renderChildren(w, indent+1)
+	n.renderChildren(r.w, indent+1)
 
 	indentfunc()
-	io.WriteString(w, "</")
-	io.WriteString(w, n.name)
-	io.WriteString(w, ">\n") // what to do about the trailing \n !?
+	io.WriteString(r.w, "</")
+	io.WriteString(r.w, n.name)
+	io.WriteString(r.w, ">\n") // what to do about the trailing \n !?
 }
 
-func (n *node) renderChildren(w io.Writer, indent int) {
+func (r *Renderer) renderChildren(n *node, indent int) {
 	for _, child := range n.children {
-		child.render(w, indent)
+		r.render(child, indent)
 	}
 }
 
-func (n *node) isVoid() bool {
+func (r *Renderer) isVoid(n *node) bool {
 	for _, name := range voidElements {
 		if n.name == name {
 			return true
@@ -102,28 +102,28 @@ func (n *node) isVoid() bool {
 	return false
 }
 
-func (n *node) renderAttributes(w io.Writer) {
+func (r *Renderer) renderAttributes(n *node) {
 	// this one is pretty straightforward, may need some escaping at some point.
 	// currently my "security model" is that gaml templates come from a trusted
 	// source (namely myself) and will be sanitized.
 
 	for key, values := range n.attributes {
-		io.WriteString(w, " ")
-		io.WriteString(w, key)
+		io.WriteString(r.w, " ")
+		io.WriteString(r.w, key)
 		if values != nil {
-			io.WriteString(w, "='")
-			io.WriteString(w, strings.Join(values, " "))
-			io.WriteString(w, "'")
+			io.WriteString(r.w, "='")
+			io.WriteString(r.w, strings.Join(values, " "))
+			io.WriteString(r.w, "'")
 		}
 	}
 }
 
-func (n *node) renderText(w io.Writer, indent int) {
+func (r *Renderer) renderText(n *node, indent int) {
 	// ditto: will probably want some options for escaping here.
 	for i := 0; i != indent; i++ {
-		io.WriteString(w, " ")
+		io.WriteString(r.w, " ")
 	}
-	io.WriteString(w, n.text)
-	io.WriteString(w, "\n")
+	io.WriteString(r.w, n.text)
+	io.WriteString(r.w, "\n")
 
 }
