@@ -61,7 +61,7 @@ func readFile(t *testing.T, fn string) ([]byte, error) {
 }
 
 func TestHttp(t *testing.T) {
-	renderer := &Renderer{IndentSpace}
+	renderer := &Renderer{IndentSpace, true}
 	if httpHandler, err := NewGamlHandlerWithRenderer(test_dir, renderer); err != nil {
 		t.Errorf("couldn't create HamlHandler: %s", err)
 	} else {

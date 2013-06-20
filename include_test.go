@@ -172,7 +172,7 @@ func testInclude(t *testing.T, in string, expected string) {
 	p.IncludeLoader = loader
 	var output bytes.Buffer
 
-	renderer := Renderer{IndentSpace}
+	renderer := Renderer{IndentSpace, true}
 
 	if root, err := p.Parse(); err != nil {
 		t.Error(err)

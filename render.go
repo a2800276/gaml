@@ -7,7 +7,8 @@ import (
 )
 
 type Renderer struct {
-	Indent IndentFunc
+	Indent   IndentFunc // how to handle indentation; default: no indent
+	InsertNL bool       // include \n after tags; default: false
 }
 
 type renderer struct {
@@ -29,12 +30,16 @@ var IndentSpace = func(indent int, w io.Writer) {
 	}
 }
 
+var DefaultToStringRenderer = &Renderer{IndentSpace, true}
+
 func GamlToHtml(gaml string) (html string, err error) {
+	return GamlToHtmlWithRenderer(gaml, DefaultToStringRenderer)
+}
+
+func GamlToHtmlWithRenderer(gaml string, renderer *Renderer) (html string, err error) {
+
 	var buffer bytes.Buffer
 
-	renderer := NewRenderer()
-
-	renderer.Indent = IndentSpace
 	parser := NewParser(bytes.NewBufferString(gaml))
 
 	if root, err2 := parser.Parse(); err2 != nil {
@@ -43,6 +48,7 @@ func GamlToHtml(gaml string) (html string, err error) {
 		renderer.ToHtml(root, &buffer)
 	}
 	return buffer.String(), nil
+
 }
 
 func NewRenderer() *Renderer {
@@ -91,7 +97,8 @@ func (r *renderer) renderTag(n *node, indent int) {
 
 	r.renderAttributes(n)
 
-	io.WriteString(r.writer, ">\n")
+	io.WriteString(r.writer, ">")
+	r.newline()
 
 	if r.isVoid(n) {
 		return
@@ -101,7 +108,14 @@ func (r *renderer) renderTag(n *node, indent int) {
 	r.opts.Indent(indent, r.writer)
 	io.WriteString(r.writer, "</")
 	io.WriteString(r.writer, n.name)
-	io.WriteString(r.writer, ">\n") // what to do about the trailing \n !?
+	io.WriteString(r.writer, ">") // what to do about the trailing \n !?
+	r.newline()
+}
+
+func (r *renderer) newline() {
+	if r.opts.InsertNL {
+		io.WriteString(r.writer, "\n")
+	}
 }
 
 func (r *renderer) renderChildren(n *node, indent int) {
@@ -137,10 +151,9 @@ func (r *renderer) renderAttributes(n *node) {
 
 func (r *renderer) renderText(n *node, indent int) {
 	// ditto: will probably want some options for escaping here.
-	for i := 0; i != indent; i++ {
-		io.WriteString(r.writer, " ")
-	}
+	r.opts.Indent(indent, r.writer)
 	io.WriteString(r.writer, n.text)
+	//r.newline()
 	io.WriteString(r.writer, "\n")
 
 }
