@@ -95,6 +95,11 @@ func TestVoidElement(t *testing.T) {
 
 func TestQuote(t *testing.T) {
 	test_simple(t, "%body(onload='alert(\"hello1\")')", "<body onload='alert(\"hello1\")'>\n</body>\n")
+	test_simple(t, "%body(onload='alert(\\'hello2\\')')", "<body onload='alert('hello2')'>\n</body>\n")
+	test_simple(t, "%tag(attr='some\\tthing')", "<tag attr='some\tthing'>\n</tag>\n")
+	test_simple(t, "%tag(attr='some\\\\thing')", "<tag attr='some\\thing'>\n</tag>\n")
+	// support arbitrary escapes
+	test_simple(t, "%tag(attr='some\\Zthing')", "<tag attr='someZthing'>\n</tag>\n")
 	test_err(t, "%body(onload=\"alert('hello')\")", "attribute values must be in single quote line(1):%body(onload=\"alert('hello')\")")
 }
 

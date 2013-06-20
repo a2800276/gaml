@@ -272,6 +272,8 @@ func (g *gamlline) attributesValues() stateFunc {
 	//case '"', '\'':
 	case END:
 		return nil
+	case '\\':
+		return g.valueEscape
 	case '\'':
 		g.node.AddAttribute(g.attr_name, g.value.String())
 		g.value.Reset()
@@ -280,6 +282,29 @@ func (g *gamlline) attributesValues() stateFunc {
 		g.collectRune()
 		return g.attributesValues
 	}
+}
+
+func (g *gamlline) valueEscape() stateFunc {
+	switch g.r {
+	case 'a':
+		g.r = '\a' // bell
+	case 'b':
+		g.r = '\b' // backspace
+	case 'f':
+		g.r = '\f' // form feed
+	case 'n':
+		g.r = '\n' // newline
+	case 'r':
+		g.r = '\r' // cr
+	case 't':
+		g.r = '\t' // tab
+	case 'v':
+		g.r = '\v' // vertical tab
+		// default is to literally pass through the rune after the backslash
+		// no matter what the value.
+	}
+	g.collectRune()
+	return g.attributesValues
 }
 
 func (g *gamlline) openBrace(s stateFunc) stateFunc {
@@ -378,6 +403,8 @@ func (g *gamlline) state_func_to_string() string {
 		return "attributesAfterName"
 	case fmt.Sprintf("%p", g.attributesValues):
 		return "attributesValues"
+	case fmt.Sprintf("%p", g.valueEscape):
+		return "valueEscape"
 	case fmt.Sprintf("%p", g.ok):
 		return "ok"
 	default:
